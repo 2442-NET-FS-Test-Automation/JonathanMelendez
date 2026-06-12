@@ -1,0 +1,5 @@
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/LibraryKata.Domain/obj/Debug/net10.0/LibraryKata.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/LibraryKata.Domain/obj/Debug/net10.0/LibraryKata.Domain.AssemblyInfoInputs.cache
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/LibraryKata.Domain/obj/Debug/net10.0/LibraryKata.Domain.AssemblyInfo.cs
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/LibraryKata.Domain/obj/Debug/net10.0/LibraryKata.Domain.csproj.CoreCompileInputs.cache
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/LibraryKata.Domain/obj/Debug/net10.0/LibraryKata.Domain.sourcelink.json

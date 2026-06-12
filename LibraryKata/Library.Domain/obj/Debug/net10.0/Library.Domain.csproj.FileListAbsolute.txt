@@ -1,0 +1,12 @@
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/bin/Debug/net10.0/Library.Domain.deps.json
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/bin/Debug/net10.0/Library.Domain.dll
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/bin/Debug/net10.0/Library.Domain.pdb
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/obj/Debug/net10.0/Library.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/obj/Debug/net10.0/Library.Domain.AssemblyInfoInputs.cache
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/obj/Debug/net10.0/Library.Domain.AssemblyInfo.cs
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/obj/Debug/net10.0/Library.Domain.csproj.CoreCompileInputs.cache
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/obj/Debug/net10.0/Library.Domain.sourcelink.json
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/obj/Debug/net10.0/Library.Domain.dll
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/obj/Debug/net10.0/refint/Library.Domain.dll
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/obj/Debug/net10.0/Library.Domain.pdb
+/home/jona/Documents/GitHub/JonathanMelendez/LibraryKata/Library.Domain/obj/Debug/net10.0/ref/Library.Domain.dll

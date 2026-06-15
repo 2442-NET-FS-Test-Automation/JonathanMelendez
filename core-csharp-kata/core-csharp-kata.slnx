@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Store.App/Store.App.csproj" />
+  <Project Path="Store.Domain/Store.Domain.csproj" />
+</Solution>

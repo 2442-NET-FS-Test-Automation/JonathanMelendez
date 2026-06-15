@@ -38,11 +38,29 @@ foreach (string book in books)
 }
 ```
 
-## Structures 
-### Arrays
+## Structures
+### Collections
+#### Arrays
+Fixed size
 ``` C#
 // Definition syntax
 string[] myArray = {"yes", "no"};
+```
+#### List<T>
+Almost like a python array
+- Indexed
+- Dynamic size
+- ordered
+#### Stack<T>
+A stack
+- LIFO
+#### Queue<T>
+A queue
+- FIFO
+- Enqueue()
+- Dequeue()
+#### LinkedList<T>
+Insert anywhere, reorder
 ```
 
 ### Classes
@@ -68,6 +86,37 @@ public class Book
     }
 }
 ```
+
+### Enums
+Can only be one of the types specified
+``` C#
+public enum ItemKind
+{
+    Type1,
+    Type2,
+    Type3
+}
+```
+
+### Struct
+Small bundles of data with no identity
+``` C#
+public readonly struct ShelfLocation
+{
+    public int Aisle { get; }
+    public int Shelf { get; }
+    public ShelfLocation(int aisle, int shelf)
+    {
+        Aisle = aisle;
+        Shelf = shelf;
+    }
+    public override string ToString()
+    {
+        return $"Aisle {Aisle}, Shelf {Shelf}";
+    }
+}
+```
+
 
 #### Method overriding
 Theres 2 keywords that work for this

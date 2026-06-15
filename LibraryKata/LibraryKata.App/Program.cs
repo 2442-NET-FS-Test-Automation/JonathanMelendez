@@ -9,6 +9,7 @@ public class Program
     {
         ClassesExample();
         OopDemo();
+        CollectionsDemo();
     }
 
     private static void ClassesExample()
@@ -60,5 +61,31 @@ public class Program
         Console.WriteLine($"Magazine -> {wired.ShelfLabel()}");
         Console.WriteLine($"LibraryItem -> {baseMag.ShelfLabel()}");
 
+    }
+
+        private static void CollectionsDemo()
+    {
+        Console.WriteLine("== Collections demo stuuuff");
+
+        Catalog catalog = new();
+        catalog._items.Add(new Book("Dune", "Frank Herbert", 5));
+        catalog._items.Add(new ReferenceBook("Dictionary", "RAE", "Language"));
+        catalog._items.Add(new Magazine("Wired", "Conde Naste", 5));
+
+        Console.WriteLine($"Catalog holds {catalog.Count}; first is {catalog._items[0].Title}");
+
+        ItemKind kind = ItemKind.Magazine;
+
+        ShelfLocation location = new(3,12);
+        Console.WriteLine($"{kind} sits at {location}");
+
+
+        Shelf<LibraryItem> shelf = new(2);
+        Shelf<int> intShelf = new(15);
+
+        shelf.TryAdd(new Book("Dune", "Frank Herbert", 5));
+        shelf.TryAdd(catalog._items[2]);
+
+        Console.WriteLine($"Adding more when size is {shelf.Capacity}: {shelf.TryAdd(catalog._items[1])}");
     }
 }

@@ -1,4 +1,4 @@
-namespace LibraryKata.Domain;
+using LibraryKata.Domain;
 
 public enum ItemKind
 {

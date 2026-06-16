@@ -1,9 +1,17 @@
 namespace LibraryKata.Domain;
-
-public struct ShelfLocation(int aisle, int shelf)
+public readonly struct ShelfLocation
 {
-    public int Aisle { get; } = aisle;
-    public int Shelf { get; } = shelf;
+    public int Aisle { get; }
+    public int Shelf { get; }
 
-    public override readonly string ToString() => $"Aisle {Aisle}, Shelf {Shelf}";
+    public ShelfLocation(int aisle, int shelf)
+    {
+        Aisle = aisle;
+        Shelf = shelf;
+    }
+
+    public override string ToString()
+    {
+        return $"Aisle {Aisle}, Shelf {Shelf}";
+    }
 }

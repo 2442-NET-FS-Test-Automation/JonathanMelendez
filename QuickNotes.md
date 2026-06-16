@@ -147,3 +147,15 @@ Question mark notes a variable can be nullable
 ``` C#
 string? text;
 ```
+
+### SOLID Principles
+#### Single responsability
+Keep things simple and focusing in just one function
+#### Open / Closed
+Open for modification-patching / closed for direct modification
+#### Liskov Substitution
+Parents/ childs should be substitutable
+#### Inteface segregation
+Single reponsability but interface
+#### Dependency inversion
+Not have direct dependencies

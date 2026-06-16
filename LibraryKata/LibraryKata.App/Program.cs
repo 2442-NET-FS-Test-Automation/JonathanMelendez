@@ -9,7 +9,6 @@ public class Program
     {
         ClassesExample();
         OopDemo();
-        CollectionsDemo();
     }
 
     private static void ClassesExample()
@@ -63,29 +62,76 @@ public class Program
 
     }
 
-        private static void CollectionsDemo()
+    private static void CollectionsDemo()
     {
-        Console.WriteLine("== Collections demo stuuuff");
+        Console.WriteLine("==== COLLECTIONS DEMO STUFF =====");
 
+        //Creating a catalog object
+        // Because this is backed by a list, it grows and shrinks for us
         Catalog catalog = new();
-        catalog._items.Add(new Book("Dune", "Frank Herbert", 5));
-        catalog._items.Add(new ReferenceBook("Dictionary", "RAE", "Language"));
-        catalog._items.Add(new Magazine("Wired", "Conde Naste", 5));
 
-        Console.WriteLine($"Catalog holds {catalog.Count}; first is {catalog._items[0].Title}");
+        // I could create my objects
+        Book dune = new Book("Dune", "Frank Herbert", 3);
 
-        ItemKind kind = ItemKind.Magazine;
+        // Then add them - we now go through Catalog.Add(), which wraps the private list.
+        // We never touch catalog._items directly anymore: the list is the Catalog's business.
+        catalog.Add(dune);
 
-        ShelfLocation location = new(3,12);
-        Console.WriteLine($"{kind} sits at {location}");
+        // I can also just call a constructor inside the Add() method call
+        // Methods having their arguments satisfied by the return of other methods is a common pattern
+        // and sometimes you'll get like 4-5 callbacks deep in tools like ASP.NET
+        catalog.Add(new ReferenceBook("C# Language Specs", "Microsoft", "Technology"));
+        catalog.Add(new Magazine("Nat Geo", "Nat Geo", 4));
 
+        // Count is a wrapper property; catalog[0] uses the indexer - reads like an array,
+        // but it's read-only, so no one can do catalog[0] = somethingElse.
+        Console.WriteLine($"Catalog holds {catalog.Count}; first is {catalog[0].Title}");
 
-        Shelf<LibraryItem> shelf = new(2);
-        Shelf<int> intShelf = new(15);
+        // The other containers, each reached through intent-named methods instead of raw fields:
+        // STACK (LIFO) - return cart: the last book dropped is the first re-shelved.
+        catalog.DropInReturnCart(catalog[0]);
+        catalog.DropInReturnCart(catalog[2]);
+        Console.WriteLine($"Return cart has {catalog.CartCount}; reshelving \"{catalog.Reshelve().Title}\" first");
 
-        shelf.TryAdd(new Book("Dune", "Frank Herbert", 5));
-        shelf.TryAdd(catalog._items[2]);
+        // QUEUE (FIFO) - holds line: the first member to ask is the first served.
+        catalog.PlaceHold("Ada");
+        catalog.PlaceHold("Grace");
+        Console.WriteLine($"{catalog.HoldsWaiting} holds waiting; serving {catalog.ServeNextHold()} first");
 
-        Console.WriteLine($"Adding more when size is {shelf.Capacity}: {shelf.TryAdd(catalog._items[1])}");
+        // LINKEDLIST - a reading list we reorder; AddNextUp jumps to the front.
+        catalog.AddToReadingList(catalog[0]);
+        catalog.AddNextUp(catalog[1]);
+        Console.WriteLine("Reading list order:");
+        foreach (LibraryItem item in catalog.ReadingList)
+        {
+            Console.WriteLine($"  - {item.Title}");
+        }
+
+        // Enum + Struct use
+        ItemKind kind = ItemKind.Magazine; // example of selecting an enum value
+        
+        ShelfLocation location = new ShelfLocation(3,12); // struct - looks alot like a class, but it is a VALUE type
+
+        Console.WriteLine($"{kind} sits at {location}"); 
+
+        Book duneCopy = dune; // copies the reference
+        // lets say I modify duneCopy, what happens to the data in dune?
+        // all we copied was the pointer - these two things are not independent
+
+        ShelfLocation location2 = location; // copies the data/fields 
+        // these are not linked in the same way, I can edit the data in one without touching the other
+
+        // Generics: our own Shelf<T> that can hold anything - though technically all the collections
+        // we used thusfar have been generic classes themselves
+        Shelf<LibraryItem> shelf = new Shelf<LibraryItem>(2);
+        Shelf<int> intShelf = new Shelf<int>(200);
+        
+        shelf.TryAdd(catalog[0]);
+        shelf.TryAdd(catalog[1]);
+
+        Console.WriteLine($"Trying to add a third thing in our catalog: {shelf.TryAdd(catalog[2])}");
+        
+        
     }
+
 }

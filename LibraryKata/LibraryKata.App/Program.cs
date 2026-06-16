@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using LibraryKata.Domain;
+using Serilog;
 
 namespace LibraryKata.App;
 
@@ -7,8 +8,17 @@ public class Program
 {
     public static void Main()
     {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.Console()
+            .CreateLogger();
+
         ClassesExample();
         OopDemo();
+        CollectionsDemo();
+        ExceptionsDemo();
+
+        Log.CloseAndFlush();
     }
 
     private static void ClassesExample()
@@ -130,8 +140,61 @@ public class Program
         shelf.TryAdd(catalog[1]);
 
         Console.WriteLine($"Trying to add a third thing in our catalog: {shelf.TryAdd(catalog[2])}");
-        
-        
     }
 
+    private static void ExceptionsDemo()
+    {
+        Console.WriteLine("\n == Exceptions, patters, logging ==");
+        // Liskov substitution
+        ILibraryRepo repo = new InMemLibraryRepo();
+
+        IUnitOfWork libraryWork = new LibraryUnitOfWork(repo);
+        LibraryItem dune = LibraryItemFactory.Create(ItemKind.Book, "Dune", "The Dune Author", 1000, "Literature");
+
+        repo.AddItem(dune);
+
+        repo.AddItem(LibraryItemFactory.Create(ItemKind.ReferenceBook, "C# Basics", "Sherman p. C", section: "Learning"));
+
+        libraryWork.Stage("Added 2 items");
+        libraryWork.Commit();
+
+        try
+        {
+            LibraryItem missing = repo.GetItemById(99);
+        }
+        catch (ItemNotFoundException e)
+        {
+            Log.Error("Lookup failed for id {Id}: {Message}", e.Id, e.Message);
+        }
+        catch (LibraryException e)
+        {
+            Log.Error("Library error: {Message}", e.Message);
+        }
+        catch (Exception e)
+        {
+            Log.Error("non library error: {Message}", e.Message);
+        }
+
+        finally // Guaranteed execution even if returned in the try-catch
+        {
+            Console.WriteLine("hit out finally block - lookup attempt done");
+        }
+
+        Book noCopies = new("Count of Montecristo", "Alejandro Dumas", 0);
+        try
+        {
+            Borrow(noCopies);
+        }
+        catch (ItemNotAvailableException e)
+        {
+            Log.Warning("Borrowing not available book: {e}", e);
+        }
+    }
+    public static void Borrow(Book book)
+    {
+        if (!book.Checkout())
+        {
+            throw new ItemNotAvailableException(book.Title);
+        }
+    }
 }

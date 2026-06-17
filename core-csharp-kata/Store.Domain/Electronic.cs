@@ -1,0 +1,17 @@
+namespace Store.Domain;
+
+public class Electronic : Item
+{
+    public override string Category => "Electronic";
+    public int WarrantyYears { get; }
+    public int PowerConsumption { get; }
+    public Electronic(string name, double price, int stock, int warrantyYears, int powerConsumption) : base(name, price, stock)
+    {
+        WarrantyYears = warrantyYears;
+        PowerConsumption = powerConsumption;
+    }
+    public override string GetDetails()
+    {
+        return $"{WarrantyYears} years of warranty, {PowerConsumption}W of consumption";
+    }
+}

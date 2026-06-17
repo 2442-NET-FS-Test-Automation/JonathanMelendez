@@ -1,6 +1,6 @@
 namespace LibraryKata.Domain;
 
-public class Magazine : LibraryItem, ILendable
+public sealed class Magazine : LibraryItem, ILendable
 {
     public int CirculationCopies { get; private set; }
     public Magazine(string title, string publisher, int circulationCopies) : base(title, publisher)

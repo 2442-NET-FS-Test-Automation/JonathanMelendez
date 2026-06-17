@@ -17,6 +17,7 @@ public class Program
         OopDemo();
         CollectionsDemo();
         ExceptionsDemo();
+        AdvancedClassesDemo();
 
         Log.CloseAndFlush();
     }
@@ -188,6 +189,37 @@ public class Program
         catch (ItemNotAvailableException e)
         {
             Log.Warning("Borrowing not available book: {e}", e);
+        }
+    }
+    private static void AdvancedClassesDemo()
+    {
+        Console.WriteLine("== Advanced Classes ==");
+        Console.WriteLine($"{GC.GetTotalMemory(false) / 1024} kb"); // Garbage Collector
+
+        ILibraryRepo repo = new InMemLibraryRepo();
+
+        LibraryItem dune = LibraryItemFactory.Create(ItemKind.Book, "Dune", "The Dune Author", 1000, "Literature");
+
+        repo.AddItem(dune);
+
+        repo.AddItem(LibraryItemFactory.Create(ItemKind.ReferenceBook, "C# Basics", "Sherman p. C", section: "Learning"));
+        repo.AddItem(LibraryItemFactory.Create(ItemKind.Book, "C++ Basics", "Sherman p. C", section: "Learning"));
+
+        Catalog catalog = [];
+        foreach (LibraryItem item in repo.GetAllItems())
+        {
+            catalog.Add(item);
+        }
+
+        Console.WriteLine($"We have {catalog.Authors.Count} unique authors");
+        foreach (string author in catalog.Authors) Console.WriteLine(author);
+
+        List<LibraryItem> bySherman = catalog.Find(item => item.Author == "Sherman p. C");
+        Console.WriteLine($"there are {bySherman.Count} books by Sherman p. C");
+
+        foreach (LibraryItem item in catalog.GetLendableItems())
+        {
+            Console.WriteLine($"{item.Title} is lendable");
         }
     }
     public static void Borrow(Book book)

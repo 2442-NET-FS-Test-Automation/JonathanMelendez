@@ -3,38 +3,34 @@ namespace LibraryKata.Domain;
 
 public class InMemLibraryRepo() : ILibraryRepo
 {
-    private List<LibraryItem> _items = [];
+    private Dictionary<int, LibraryItem> _items = [];
     public void AddItem(LibraryItem item)
     {
-        _items.Add(item);
+        _items.Add(item.Id, item); // This one throws when duplicates
+        // _items[item.Id] = item; // Alternative for adding/assigning to dictionaries
+
         Log.Information("Added {Title} - id: {id}", item.Title, item.Id);
     }
 
-    public List<LibraryItem> GetAllItems() => _items.ToList();
+    public List<LibraryItem> GetAllItems() => _items.Values.ToList();
 
     public LibraryItem GetItemById(int id)
     {
-        foreach (LibraryItem item in _items)
-        {
-            if (item.Id == id) return item;
-        }
+        if (_items.TryGetValue(id, out LibraryItem? item)) return item;
 
-        Log.Warning($"Lookup failes for {id}");
+        Log.Warning("Lookup failed for {id}", id);
         throw new ItemNotFoundException(id);
     }
 
     public bool RemoveById(int id)
     {
-        foreach (LibraryItem item in _items)
+        if (_items.Remove(id))
         {
-            if (item.Id == id) 
-            {
-                _items.Remove(item);
-                Log.Information($"Removed item with id: {id}");
-                return true;
-            }
+            Log.Information("Removed item with id {id}", id);
+            return true;
         }
-        Log.Information($"Item with id {id} removed/not found");
+        
+        Log.Information("Item with id {id} removed/not found", id);
         return false;
     }
 }

@@ -61,6 +61,13 @@ A queue
 - Dequeue()
 #### LinkedList<T>
 Insert anywhere, reorder
+
+
+#### HashSet
+O(1) lookup time
+Can't have duplicates
+``` C#
+private readonly HashSet<string> _authors = [];
 ```
 
 ### Classes
@@ -86,6 +93,12 @@ public class Book
     }
 }
 ```
+
+#### Partial classes
+You can divide class definitions in multiple files by using `partial` keyword, just for mental organization, compiler will unify them.
+
+#### Sealed classes
+Using `sealed` keyword in a class definition will make it impossible to inherit from it
 
 ### Enums
 Can only be one of the types specified
@@ -146,6 +159,16 @@ Value types get on stack. While Reference types get an address saved in the stac
 Question mark notes a variable can be nullable
 ``` C#
 string? text;
+```
+
+#### Delegates
+A delegate is a reference to a method in an argument list.
+We use Predicate to pass a delegate to a function.
+So in this Example match is a referene to a method.
+``` C#
+Find(Predicate<LibraryItem> match)
+
+authorItems = Find(item => item.Author == "Frank Herbert");
 ```
 
 ### SOLID Principles

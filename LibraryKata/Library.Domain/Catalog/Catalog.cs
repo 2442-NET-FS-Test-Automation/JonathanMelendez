@@ -1,16 +1,24 @@
 namespace LibraryKata.Domain;
 
-public class Catalog
+public partial class Catalog
 {
     private readonly List<LibraryItem> _items = new();
     private readonly Stack<LibraryItem> _returnCart = new();
     private readonly Queue<string> _holdQueue = new();
     private readonly LinkedList<LibraryItem> _readingList = new();
+    private readonly HashSet<string> _authors = [];
+
+    public IReadOnlyCollection<string> Authors => _authors;
 
     public int Count => _items.Count;
     public LibraryItem this[int index] => _items[index]; 
-    public void Add(LibraryItem item) => _items.Add(item);
+    public void Add(LibraryItem item) 
+    {
+        _items.Add(item);
+        _authors.Add(item.Author);
+    }
     public bool Remove(LibraryItem item) => _items.Remove(item);
+    public bool IsEmpty => _items.Count == 0;
 
     // --- Stack surface (return cart) ---
     public void DropInReturnCart(LibraryItem item) => _returnCart.Push(item);

@@ -5,12 +5,12 @@ namespace Store.Domain;
 public class History
 {
     private readonly Stack<Transaction> Transactions = [];
-    public void HistoryAdd(TransactionEnum action, Item item)
+    public void Add(TransactionEnum action, Item item)
     {
         Transactions.Push(new Transaction(action, item));
         Log.Information("Added new item with {id}", item.Id);
     }
-    public bool HistoryUndo()
+    public bool Undo()
     {
         Transaction lastTransaction = Transactions.Pop();
         switch (lastTransaction.Action)
@@ -26,7 +26,7 @@ public class History
         }
         throw new NotImplementedException();
     }
-    public bool HistoryRedo()
+    public bool Redo()
     {
         throw new NotImplementedException();
     }

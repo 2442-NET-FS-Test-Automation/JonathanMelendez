@@ -5,7 +5,7 @@ namespace Store.App;
 public class Program
 {
     private static List<Item> Items = GetSeedItems();
-    private static List<string> History = [$"{DateTime.Now} - Program started"];
+    private static History THistory = new();
     public static void Main()
     {
         bool isRunning = true;
@@ -87,7 +87,7 @@ public class Program
                 EnterToContinue();
                 break;
             case 2:
-                ItemAddMenu();
+                ItemAdd();
                 break;
             case 3:
                 ItemSell();
@@ -98,7 +98,7 @@ public class Program
                 EnterToContinue();
                 break;
             case 5:
-                ShowHistory();
+                // TODO: History implementations
                 EnterToContinue();
                 break;
             case 6:
@@ -147,7 +147,7 @@ public class Program
         }
         Console.WriteLine($"\n{numMatches} matches found.");
     }
-    public static void ItemAddMenu()
+    public static int ItemCategorySelector()
     {
         bool isRunning = true;
         int selected = 0;
@@ -181,15 +181,15 @@ public class Program
                             isRunning = false;
                             break;
                         }
-                        ItemAdd(selected);
-                        break;
+                        return selected;
                 }
                 Console.Clear();
                 PrintMenu("CategoryMenu", selected);
             }
         }
+        return 0;
     }
-    public static void ItemAdd(int selected)
+    public static void ItemAdd()
     {
         bool loop = true;
 
@@ -215,6 +215,8 @@ public class Program
             if (!ValueCheck(stock, 0, null)) Console.Write("Should be >= 0. Try again: ");
             else loop = false;
         }
+
+        int selected = ItemCategorySelector();
         
         switch (selected)
         {
@@ -311,7 +313,7 @@ public class Program
                 Items.Add(new Grocery(name, price, stock, new DateOnly(year, month, day), weight));
                 break;
         }
-        AddHistory($"Added item with ID: {Items.Last().Id}");
+        THistory.Add(TransactionEnum.Add, Items.Last());
         Console.WriteLine("\nItem added succesfully!");
         EnterToContinue();
     }
@@ -343,7 +345,7 @@ public class Program
             {
                 if (item.Sell(amount)) 
                 {   
-                    AddHistory($"Sold item with ID: {item.Id}");
+                    THistory.Add(TransactionEnum.Sell, item);
                     Console.WriteLine($"Sold {amount} of {item.Name}");
                 }
                 else Console.WriteLine("There is not enough stock!");
@@ -376,23 +378,11 @@ public class Program
         foreach(Item item in Items) 
             if (item.Id == id)
             {
-                AddHistory($"Restocked item with ID: {item.Id}");
+                THistory.Add(TransactionEnum.Restock, item);
                 item.Restock(amount);
                 Console.WriteLine($"Added {amount} to stock of {item.Name}");
                 break;
             }
-    }
-    public static void ShowHistory()
-    {
-        Console.WriteLine("== Transactions History ==\n");
-        foreach (string entry in History)
-        {
-            Console.WriteLine(entry);
-        }
-    }
-    public static void AddHistory(string newEntry)
-    {
-        History.Add($"{DateTime.Now} - {newEntry}");
     }
     
     // Helper methods

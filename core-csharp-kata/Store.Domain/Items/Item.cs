@@ -2,7 +2,7 @@
 
 public abstract class Item(string name, double price, int stock)
 {
-    private static int _nextId = 1;
+    public static int _nextId = 1;
     public int Id { get; } = _nextId++;
     public string Name { get; private set; } = name;
     public double Price { get; private set; } = price;

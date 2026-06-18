@@ -4,7 +4,7 @@ namespace Store.App;
 
 public class Program
 {
-    private static List<Item> Items = GetSeedItems();
+    private static IStoreRepository repository = new InMemStoreRepository();
     private static History THistory = new();
     public static void Main()
     {
@@ -48,7 +48,7 @@ public class Program
         switch (menuName)
         {
             case "MainMenu":
-                Console.WriteLine("Jonnhy's Bank Main Menu");
+                Console.WriteLine("Store Main Menu");
                 Console.WriteLine("Select an option:");
                 Console.WriteLine((selected == 0 ? "->" : "  ") + " List Items");
                 Console.WriteLine((selected == 1 ? "->" : "  ") + " Search Item");
@@ -109,7 +109,7 @@ public class Program
     public static void ItemList()
     {
         Console.WriteLine("== All Item List ==\n");
-        foreach (Item item in Items)
+        foreach (Item item in repository.GetAllItems())
         {
             Console.WriteLine(item);
             Console.WriteLine($"      {item.GetDetails()}");
@@ -136,7 +136,7 @@ public class Program
         Console.Clear();
         Console.WriteLine($"== Items containing '{searchedName}' ==\n");
         int numMatches = 0;
-        foreach (Item item in Items)
+        foreach (Item item in repository.GetAllItems())
         {
             if (item.Name.ToLower().Contains(searchedName.ToLower()))
             {
@@ -191,6 +191,8 @@ public class Program
     }
     public static void ItemAdd()
     {
+        Console.WriteLine("== Add Item ==");
+
         bool loop = true;
 
         Console.WriteLine();
@@ -223,7 +225,7 @@ public class Program
             case 0: // Clothing
                 string[] sizes = ["CH", "M", "L", "XL", "XXL"];
 
-                Console.Write($"Type the size (CH, M, L, XL, XXL): ");
+                Console.Write($"\nType the size (CH, M, L, XL, XXL): ");
                 loop = true;
                 string size = "";
                 while (loop)
@@ -244,7 +246,7 @@ public class Program
                 Console.Write("Type the material: ");
                 string material = Console.ReadLine()!;
 
-                Items.Add(new Clothing(name, price, stock, size, color, material));
+                repository.AddItem(ItemFactory.Create(ItemKind.Clothing, name, price, stock, size, color, material));
                 break;
             case 1: // Electronic
                 Console.Write("Type years of warranty: ");
@@ -267,36 +269,15 @@ public class Program
                     else loop = false;
                 }
                 
-                Items.Add(new Electronic(name, price, stock, warranty, power));
+                repository.AddItem(ItemFactory.Create(ItemKind.Electronics, name, price, stock, warrantyYears: warranty, powerConsumption: power));
                 break;
             case 2: // Grocery
-                Console.Write("Type the year of expiration: ");
-                int year = 0;
+                Console.Write("Type the expiration date (yyyy-MM-dd): ");
+                DateOnly date = new();
                 loop = true;
                 while (loop)
                 {
-                    while(!int.TryParse(Console.ReadLine(), out year)) Console.Write("Try again: ");
-                    if (!ValueCheck(year, DateTime.Now.Year, null)) Console.Write("Try again: ");
-                    else loop = false;
-                }
-                
-                Console.Write("Type the month of expiration: ");
-                int month = 0;
-                loop = true;
-                while (loop)
-                {
-                    while(!int.TryParse(Console.ReadLine(), out month)) Console.Write("Try again: ");
-                    if (!ValueCheck(month, 0, 12)) Console.Write("Try again: ");
-                    else loop = false;
-                }
-                
-                Console.Write("Type the day of expiration: ");
-                int day = 0;
-                loop = true;
-                while (loop)
-                {
-                    while(!int.TryParse(Console.ReadLine(), out day)) Console.Write("Try again: ");
-                    if (!ValueCheck(day, 0, 31)) Console.Write("Should be >= 0. Try again: ");
+                    if(!DateOnly.TryParseExact(Console.ReadLine(), "yyyy-MM-dd", out date)) Console.Write("Try again: ");
                     else loop = false;
                 }
                 
@@ -310,10 +291,10 @@ public class Program
                     else loop = false;
                 }
                 
-                Items.Add(new Grocery(name, price, stock, new DateOnly(year, month, day), weight));
+                repository.AddItem(ItemFactory.Create(ItemKind.Grocery, name, price, stock, expirationDate: date, weightKg: weight));
                 break;
         }
-        THistory.Add(TransactionEnum.Add, Items.Last());
+        THistory.Add(TransactionEnum.Add, repository.GetLastItem());
         Console.WriteLine("\nItem added succesfully!");
         EnterToContinue();
     }
@@ -324,8 +305,8 @@ public class Program
         bool loop = true;
         while (loop)
         {
-            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{Items.Last().Id}): ");
-            if (!ValueCheck(id, 1, Items.Last().Id)) Console.Write($"Try again (1-{Items.Last().Id}): ");
+            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{Item._nextId-1}): ");
+            if (!ValueCheck(id, 1, Item._nextId-1)) Console.Write($"Try again (1-{Item._nextId-1}): ");
             else loop = false;
         }
 
@@ -334,12 +315,12 @@ public class Program
         loop = true;
         while (loop)
         {
-            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{Items.Last().Id}): ");
+            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{Item._nextId-1}): ");
             if (!ValueCheck(amount, 0, null)) Console.Write($"Should be >= 0. Try again: ");
             else loop = false;
         }
 
-        foreach(Item item in Items)
+        foreach(Item item in repository.GetAllItems())
         {
             if (item.Id == id)
             {
@@ -360,8 +341,8 @@ public class Program
         bool loop = true;
         while (loop)
         {
-            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{Items.Last().Id}): ");
-            if (!ValueCheck(id, 1, Items.Last().Id)) Console.Write($"Try again (1-{Items.Last().Id}): ");
+            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{Item._nextId-1}): ");
+            if (!ValueCheck(id, 1, Item._nextId-1)) Console.Write($"Try again (1-{Item._nextId-1}): ");
             else loop = false;
         }
 
@@ -370,12 +351,12 @@ public class Program
         loop = true;
         while (loop)
         {
-            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{Items.Last().Id}): ");
+            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{Item._nextId-1}): ");
             if (!ValueCheck(amount, 0, null)) Console.Write($"Should be >= 0. Try again: ");
             else loop = false;
         }
 
-        foreach(Item item in Items) 
+        foreach(Item item in repository.GetAllItems()) 
             if (item.Id == id)
             {
                 THistory.Add(TransactionEnum.Restock, item);
@@ -386,18 +367,6 @@ public class Program
     }
     
     // Helper methods
-    public static List<Item> GetSeedItems()
-    {
-        return new List<Item> {
-            new Clothing("Shirt", 3, 10, "L", "White", "Poliester"),
-            new Clothing("Pants", 4.5, 5, "XL", "Gray", "Silk"),
-            new Electronic("Xbox Series Z", 500, 3, 2, 250),
-            new Electronic("Potato Station", 800, 7, 1, 300),
-            new Electronic("Televisor", 400, 12, 3, 50),
-            new Grocery("Doritos", 0.8, 25, new DateOnly(2026, 10, 17), 0.2),
-            new Grocery("Rice Bag", 0.8, 25, new DateOnly(2026, 10, 17), 1)
-        };
-    }
     public static bool ValueCheck(int value, int? lowRange, int? highRange)
     {
         if (lowRange != null) if (value < lowRange) return false;

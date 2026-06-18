@@ -1,5 +1,5 @@
 namespace Store.Domain;
-public interface ILibraryRepository
+public interface IStoreRepository
 {
     // CRUD
     void AddItem(Item item);
@@ -8,8 +8,8 @@ public interface ILibraryRepository
         foreach (Item item in items) AddItem(item);
     }
     void AddItem(List<Item> items) => AddItem(items.ToArray());
-
-    Item GetItemById(int id); // Trows ItemNotFoundException if not found
+    public Item GetLastItem();
+    Item GetItemById(int id); // Throws ItemNotFoundException if not found
     List<Item> GetAllItems();
 
     bool RemoveById(int id);

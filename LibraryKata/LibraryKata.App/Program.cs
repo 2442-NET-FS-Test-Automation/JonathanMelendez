@@ -6,7 +6,7 @@ namespace LibraryKata.App;
 
 public class Program
 {
-    public static void Main()
+    public static async Task Main()
     {
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
@@ -18,6 +18,7 @@ public class Program
         CollectionsDemo();
         ExceptionsDemo();
         AdvancedClassesDemo();
+        await AsyncHttpDemo();
 
         Log.CloseAndFlush();
     }
@@ -221,6 +222,22 @@ public class Program
         {
             Console.WriteLine($"{item.Title} is lendable");
         }
+    }
+    private static async Task AsyncHttpDemo(){
+        OpenLibraryClient client = new();
+
+        string[] isbns = ["9780132350884", "9780201633610"];
+
+        Task<LibraryItem?>[] fetchedBooks = new Task<LibraryItem?>[isbns.Length];
+
+        for (int i = 0; i < isbns.Length; i++)
+        {
+            fetchedBooks[i] = client.FetchByIsbnAsync(isbns[i]);
+        }
+        LibraryItem?[] foundBooks = await Task.WhenAll(fetchedBooks);
+        LibraryItem? firstBookFound = foundBooks.Length > 0 ? foundBooks[0] : null;
+
+        Console.WriteLine($"Fetched: {firstBookFound?.Describe() ?? "nothing"}");
     }
     public static void Borrow(Book book)
     {

@@ -139,6 +139,9 @@ Theres 2 keywords that work for this
 override, overwrites the function so it will replace it
 new, hides the method so when calling from a parent object reference it will not be overriden
 
+## Asyncronous code
+async methods return `Task<T>`, that acts as a placeholder in memory for the method return when it finishes
+
 ## Miscellaneus
 No pointers yay, C# has a garbage collector
 

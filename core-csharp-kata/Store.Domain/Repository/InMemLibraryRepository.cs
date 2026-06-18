@@ -19,8 +19,7 @@ public class InMemLibraryRepository() : ILibraryRepository
         if (_items.TryGetValue(id, out Item? item)) return item;
 
         Log.Warning("Lookup failed for {id}", id);
-        // throw new ItemNotFoundException(id);
-        throw new Exception(); //  TODO: ===================================================================
+        throw new ItemNotFoundException(id);
     }
 
     public bool RemoveById(int id)

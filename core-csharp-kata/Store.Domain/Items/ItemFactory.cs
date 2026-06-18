@@ -12,15 +12,15 @@ public static class ItemFactory
         double price, 
         int stock,
         // Specific Attributes of Clothing
-        string size, 
-        string color, 
-        string material,
+        string size = "", 
+        string color = "", 
+        string material = "",
         // Specific Attributes of Electronics
-        int warrantyYears, 
-        int powerConsumption,
+        int warrantyYears = 0, 
+        int powerConsumption = 0,
         // Specific Attributes of Grocery
-        DateOnly expirationDate, 
-        double weightKg
+        DateOnly expirationDate = new DateOnly(), 
+        double weightKg = 0
     )
     {
         switch (kind)

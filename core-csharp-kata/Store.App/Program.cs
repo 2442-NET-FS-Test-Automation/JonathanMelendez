@@ -124,10 +124,43 @@ public partial class Program
 
     }
 
+    public static void ItemSearchCategory()
+    {
+        int selected = SelectMenu("CategoryMenu", 3, option => true);
+        
+        Console.WriteLine("Item Search by Category\n");
+
+        int numMatches = 0;
+
+        string inputCategory = selected switch
+        {
+            0   => "Clothing",
+            1   => "Electronic",
+            2   => "Groceries",
+            
+            <0  => "Return",
+            >2  => "Return"
+        };
+        if (inputCategory == "Return") return;
+        
+
+        foreach (Item item in repository.GetAllItems())
+        {
+            if (item.Category == inputCategory)
+            {
+                Console.WriteLine(item);
+                Console.WriteLine($"      {item.GetDetails()}");
+                numMatches++;
+            }
+        }
+        Console.WriteLine($"\n{numMatches} matches found.");
+        
+    }
+
     // Item Actions
     public static void ItemAdd()
     {
-        Console.WriteLine("== Add Item ==");
+        Console.WriteLine("Add Item");
 
         bool loop = true;
 
@@ -153,7 +186,8 @@ public partial class Program
             if (!ValueCheck(stock, 0, null)) Console.Write("Should be >= 0. Try again: ");
             else loop = false;
         }
-        int selected = SelectMenu("CategoryMenu", 3, option => true);
+        
+        int selected = SelectMenu("CategoryAddMenu", 3, option => true);
         
         switch (selected)
         {

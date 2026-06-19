@@ -23,7 +23,8 @@ public partial class Program
                 Console.WriteLine((selected == 0 ? "->" : "  ") + " Search by ID");
                 Console.WriteLine((selected == 1 ? "->" : "  ") + " Search by Name");
                 Console.WriteLine((selected == 2 ? "->" : "  ") + " Search by Price");
-                Console.WriteLine((selected == 3 ? "->" : "  ") + " Close");
+                Console.WriteLine((selected == 3 ? "->" : "  ") + " Search by Category");
+                Console.WriteLine((selected == 4 ? "->" : "  ") + " Close");
                 break;
             case "ItemActions":
                 Console.WriteLine("Item Actions Menu\n");
@@ -34,9 +35,12 @@ public partial class Program
                 Console.WriteLine((selected == 3 ? "->" : "  ") + " Remove Item");
                 Console.WriteLine((selected == 4 ? "->" : "  ") + " Close");
                 break;
+            case "CategoryAddMenu":
             case "CategoryMenu":
-                Console.WriteLine("== Add Item ==\n");
-                Console.WriteLine("Select a category for the new item:");
+                if (menuName == "CategoryAddMenu") Console.WriteLine("Add Item\n");
+                else Console.WriteLine("Item Search by Category\n");
+
+                Console.WriteLine("Select a category:");
                 Console.WriteLine((selected == 0 ? "->" : "  ") + " Clothing");
                 Console.WriteLine((selected == 1 ? "->" : "  ") + " Electronic");
                 Console.WriteLine((selected == 2 ? "->" : "  ") + " Grocery");
@@ -96,7 +100,7 @@ public partial class Program
                 EnterToContinue();
                 break;
             case 1:
-                SelectMenu("ItemSearch", 3, ItemSearchExecute);
+                SelectMenu("ItemSearch", 4, ItemSearchExecute);
                 break;
             case 2:
                 SelectMenu("ItemActions", 4, ItemActionsExecute);
@@ -131,7 +135,11 @@ public partial class Program
                 ItemSearchPrice();
                 EnterToContinue();
                 break;
-            case 3:
+            case 3: // Search by Category
+                ItemSearchCategory();
+                EnterToContinue();
+                break;
+            case 4:
                 return true;
         }
         return false;

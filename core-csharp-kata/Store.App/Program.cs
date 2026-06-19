@@ -69,10 +69,38 @@ public partial class Program
         }
         Console.WriteLine($"\n{numMatches} matches found.");
     }
+
     public static void ItemSearchPrice()
     {
-        
+        double? rangeMin = null;
+        double? rangeMax = null;
+        do
+        { 
+            Console.WriteLine("Item Search by Item Price range\n");
+            Console.Clear();  
+            Console.Write("Type search min range: ");
+            rangeMin = double.TryParse(Console.ReadLine(), out double min_)? min_ : null;
+            Console.Write("Type search max range: ");
+            rangeMax = double.TryParse(Console.ReadLine(), out double max_)? max_ : null;
+            Console.Clear();
+        }
+        while( rangeMin == null || rangeMax == null || (rangeMin > rangeMax));
+
+        int numMatches = 0;
+
+        foreach (Item item in repository.GetAllItems())
+        {
+            if ( item.Price >= rangeMin && item.Price <= rangeMax)
+            {
+                Console.WriteLine(item);
+                Console.WriteLine($"      {item.GetDetails()}");
+                numMatches++;
+            }
+        }
+        Console.WriteLine($"\n{numMatches} matches found.");
+
     }
+
     // Item Actions
     public static void ItemAdd()
     {

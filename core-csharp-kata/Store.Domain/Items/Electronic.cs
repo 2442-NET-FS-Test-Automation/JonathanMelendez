@@ -14,4 +14,15 @@ public class Electronic : Item
     {
         return $"{WarrantyYears} years of warranty, {PowerConsumption}W of consumption";
     }
+    public override Dictionary<string, string> Describe()
+    {
+        return new Dictionary<string, string>
+        {
+            ["ID"] = $"{Id}",
+            ["Stock"] = $"{Stock}",
+            ["Price"] = $"{Price}",
+            ["Years of warranty"] = $"{WarrantyYears}",
+            ["Power Consumption"] = $"{PowerConsumption}w",
+        };
+    }
 }

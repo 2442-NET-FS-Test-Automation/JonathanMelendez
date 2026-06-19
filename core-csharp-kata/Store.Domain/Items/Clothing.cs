@@ -16,4 +16,17 @@ public class Clothing : Item
     {
         return $"Size {Size}, Color {Color}, Material {Material}";
     }
+
+    public override Dictionary<string, string> Describe()
+    {
+        return new Dictionary<string, string>
+        {
+            ["ID"] = $"{Id}",
+            ["Stock"] = $"{Stock}",
+            ["Price"] = $"{Price}",
+            ["Size"] = $"{Size}",
+            ["Color"] = $"{Color}",
+            ["Material"] = $"{Material}"
+        };
+    }
 }

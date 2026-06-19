@@ -21,9 +21,6 @@ public partial class Program
         Log.Information("App started at {date}", DateTime.Now);
 
         while (true) SelectMenu("MainMenu", 4, MainMenuExecute);
-
-        Log.Information("App closed at {date}", DateTime.Now);
-        Log.CloseAndFlush();
     }
     public static void ItemList()
     {

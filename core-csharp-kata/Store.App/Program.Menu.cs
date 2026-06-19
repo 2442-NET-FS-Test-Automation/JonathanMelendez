@@ -1,4 +1,5 @@
 using Store.Domain;
+using Serilog;
 
 namespace Store.App;
 public partial class Program
@@ -106,6 +107,8 @@ public partial class Program
                 EnterToContinue();
                 break;
             case 4:
+                Log.Information("App closed at {date}", DateTime.Now);
+                Log.CloseAndFlush();
                 System.Environment.Exit(0);
                 break;
         }

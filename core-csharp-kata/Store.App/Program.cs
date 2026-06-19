@@ -5,7 +5,7 @@ namespace Store.App;
 public class Program
 {
     private static IStoreRepository repository = new InMemStoreRepository();
-    private static History THistory = new();
+    private static History THistory = new(repository);
     public static void Main()
     {
         bool isRunning = true;
@@ -55,7 +55,7 @@ public class Program
                 Console.WriteLine((selected == 2 ? "->" : "  ") + " Add Item");
                 Console.WriteLine((selected == 3 ? "->" : "  ") + " Sell");
                 Console.WriteLine((selected == 4 ? "->" : "  ") + " Restock");
-                Console.WriteLine((selected == 5 ? "->" : "  ") + " Transaction History");
+                Console.WriteLine((selected == 5 ? "->" : "  ") + " Transaction Undo");
                 Console.WriteLine((selected == 6 ? "->" : "  ") + " Close");
                 break;
             case "CategoryMenu":
@@ -98,7 +98,7 @@ public class Program
                 EnterToContinue();
                 break;
             case 5:
-                // TODO: History implementations
+                THistory.Undo();
                 EnterToContinue();
                 break;
             case 6:
@@ -326,7 +326,7 @@ public class Program
             {
                 if (item.Sell(amount)) 
                 {   
-                    THistory.Add(TransactionEnum.Sell, item);
+                    THistory.Add(TransactionEnum.Sell, item, amount);
                     Console.WriteLine($"Sold {amount} of {item.Name}");
                 }
                 else Console.WriteLine("There is not enough stock!");
@@ -359,7 +359,7 @@ public class Program
         foreach(Item item in repository.GetAllItems()) 
             if (item.Id == id)
             {
-                THistory.Add(TransactionEnum.Restock, item);
+                THistory.Add(TransactionEnum.Restock, item, amount);
                 item.Restock(amount);
                 Console.WriteLine($"Added {amount} to stock of {item.Name}");
                 break;

@@ -120,15 +120,15 @@ public partial class Program
         switch (selected)
         {
             case 0: // Search by ID
-                ItemSearch(selected);
+                ItemSearchId();
                 EnterToContinue();
                 break;
             case 1: // Search by Name
-                ItemSearch(selected);
+                ItemSearchName();
                 EnterToContinue();
                 break;
             case 2: // Search by Price
-                ItemSearch(selected);
+                ItemSearchPrice();
                 EnterToContinue();
                 break;
             case 3:

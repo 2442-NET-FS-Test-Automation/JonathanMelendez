@@ -31,16 +31,18 @@ public partial class Program
             Console.WriteLine($"      {item.GetDetails()}");
         }
     }
-    public static void ItemSearch(int selected)
+    
+    // Item Search
+    public static void ItemSearchId()
     {
-        // TODO: 
-        // search by id (selected = 0)
-        // search by name (selected = 1)
-        // search by price (selected = 2)
+        
+    }
+    public static void ItemSearchName()
+    {
         string searchedName;
         do
         {
-            Console.WriteLine("== Item Search ==\n");
+            Console.WriteLine("Item Search by Item Name\n");
 
             Console.Write("Type search term: ");
             searchedName = Console.ReadLine()!;
@@ -54,7 +56,7 @@ public partial class Program
         while (searchedName.Length < 1);
 
         Console.Clear();
-        Console.WriteLine($"== Items containing '{searchedName}' ==\n");
+        Console.WriteLine($"Items containing '{searchedName}'\n");
         int numMatches = 0;
         foreach (Item item in repository.GetAllItems())
         {
@@ -67,7 +69,10 @@ public partial class Program
         }
         Console.WriteLine($"\n{numMatches} matches found.");
     }
-    
+    public static void ItemSearchPrice()
+    {
+        
+    }
     // Item Actions
     public static void ItemAdd()
     {

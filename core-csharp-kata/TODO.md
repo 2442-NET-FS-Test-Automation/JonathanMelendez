@@ -2,10 +2,10 @@
 
 ### Collections & ordering
 
-- [ ] **Add and list.** *As a user, I can add an entity and list everything currently held; the list grows and
+- [x] **Add and list.** *As a user, I can add an entity and list everything currently held; the list grows and
   shrinks as I add or remove — no fixed cap.*
   - [x] Add Items
-  - [ ] Remove Items
+  - [x] Remove Items
 - [x] **Undo my last action.** *As a user, I can undo my most recent change, and the one before it is untouched.*
   - [x] Undo Action
 - [ ] **Serve in arrival order.** *As a user, I can process pending requests (restock requests, a teller line, a
@@ -61,9 +61,9 @@ The finished app must use **each** of these **somewhere** — you decide which s
 - [x] custom exception (carries data) · `try`/`catch`/`finally`
 - [x] one pattern: repository behind an interface **or** factory
 - [x] Serilog structured logging (info / warning / error)
-- [ ] `Dictionary<K,V>` + `TryGetValue` · `HashSet<T>`
+- [x] `Dictionary<K,V>` + `TryGetValue` · `HashSet<T>`
 - [ ] `IEnumerable<T>` + `yield return` · lambda / `Predicate<T>` filter
-- [ ] expression-bodied member · `partial` **or** `sealed`
+- [x] expression-bodied member · `partial` **or** `sealed`
 - [ ] shared `HttpClient` + `async`/`await` · `HttpRequestException` handling
 - [ ] JSON deserialization (read the fields, build via your factory/constructor)
 - [ ] `Regex` validation · one of: `out` param / nullable + lifted operator / pattern-matching `switch`

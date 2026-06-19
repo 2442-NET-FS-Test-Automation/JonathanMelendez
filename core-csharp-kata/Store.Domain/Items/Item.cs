@@ -18,7 +18,7 @@ public abstract class Item(string name, double price, int stock)
     public void Restock(int amount) => Stock += amount;
     public override string ToString()
     {
-        return $"{Id} -> {Name} - ${Price:F2}: {Stock} available";
+        return $"[{Id}] {Name} - ${Price:F2}: {Stock} available";
     }
     public abstract string GetDetails();
 }

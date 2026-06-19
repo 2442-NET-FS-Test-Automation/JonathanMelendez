@@ -2,109 +2,13 @@
 
 namespace Store.App;
 
-public class Program
+public partial class Program
 {
     private static IStoreRepository repository = new InMemStoreRepository();
     private static History THistory = new(repository);
     public static void Main()
     {
-        bool isRunning = true;
-        int selected = 0;
-
-        Console.Clear();
-        PrintMenu("MainMenu", selected);
-        
-        while (isRunning)
-        {
-            if (Console.KeyAvailable)
-            {
-                ConsoleKeyInfo key = Console.ReadKey(true);
-                switch (key.Key)
-                {
-                    // Handle arrow movement in menu
-                    case ConsoleKey.DownArrow:
-                    case ConsoleKey.RightArrow:
-                        selected++;
-                        if (selected > 6) selected = 0;
-                        break;
-
-                    case ConsoleKey.UpArrow:
-                    case ConsoleKey.LeftArrow:
-                        selected--;
-                        if (selected < 0) selected = 6;
-                        break;
-
-                    case ConsoleKey.Enter:
-                        ExecuteMainMenuSelected(selected);
-                        break;
-                }
-                Console.Clear();
-                PrintMenu("MainMenu", selected);
-            }
-        }
-    }
-    public static void PrintMenu(string menuName, int selected)
-    {   
-        switch (menuName)
-        {
-            case "MainMenu":
-                Console.WriteLine("Store Main Menu");
-                Console.WriteLine("Select an option:");
-                Console.WriteLine((selected == 0 ? "->" : "  ") + " List Items");
-                Console.WriteLine((selected == 1 ? "->" : "  ") + " Search Item");
-                Console.WriteLine((selected == 2 ? "->" : "  ") + " Add Item");
-                Console.WriteLine((selected == 3 ? "->" : "  ") + " Sell");
-                Console.WriteLine((selected == 4 ? "->" : "  ") + " Restock");
-                Console.WriteLine((selected == 5 ? "->" : "  ") + " Transaction Undo");
-                Console.WriteLine((selected == 6 ? "->" : "  ") + " Close");
-                break;
-            case "CategoryMenu":
-                Console.WriteLine("== Add Item ==\n");
-                Console.WriteLine("Select a category for the new item.");
-                Console.WriteLine((selected == 0 ? "->" : "  ") + " Clothing");
-                Console.WriteLine((selected == 1 ? "->" : "  ") + " Electronic");
-                Console.WriteLine((selected == 2 ? "->" : "  ") + " Grocery");
-                Console.WriteLine((selected == 3 ? "->" : "  ") + " Cancel");
-                break;
-            default:
-                Console.WriteLine($"{menuName} not implemented");
-                break;
-
-        }
-        
-    }
-    public static void ExecuteMainMenuSelected(int selected)
-    {
-        Console.Clear();
-        switch (selected)
-        {
-            case 0:
-                ItemList();
-                EnterToContinue();
-                break;
-            case 1:
-                ItemSearch();
-                EnterToContinue();
-                break;
-            case 2:
-                ItemAdd();
-                break;
-            case 3:
-                ItemSell();
-                EnterToContinue();
-                break;
-            case 4:
-                ItemRestock();
-                EnterToContinue();
-                break;
-            case 5:
-                THistory.Undo();
-                EnterToContinue();
-                break;
-            case 6:
-                System.Environment.Exit(0);
-                break;
-        }
+        while (true) SelectMenu("MainMenu", 4, MainMenuExecute);
     }
     public static void ItemList()
     {
@@ -115,8 +19,12 @@ public class Program
             Console.WriteLine($"      {item.GetDetails()}");
         }
     }
-    public static void ItemSearch()
+    public static void ItemSearch(int selected)
     {
+        // TODO: 
+        // search by id (selected = 0)
+        // search by name (selected = 1)
+        // search by price (selected = 2)
         string searchedName;
         do
         {
@@ -146,48 +54,6 @@ public class Program
             }
         }
         Console.WriteLine($"\n{numMatches} matches found.");
-    }
-    public static int ItemCategorySelector()
-    {
-        bool isRunning = true;
-        int selected = 0;
-
-        Console.Clear();
-        PrintMenu("CategoryMenu", selected);
-        
-        while (isRunning)
-        {
-            if (Console.KeyAvailable)
-            {
-                ConsoleKeyInfo key = Console.ReadKey(true);
-                switch (key.Key)
-                {
-                    // Handle arrow movement in menu
-                    case ConsoleKey.DownArrow:
-                    case ConsoleKey.RightArrow:
-                        selected++;
-                        if (selected > 3) selected = 0;
-                        break;
-
-                    case ConsoleKey.UpArrow:
-                    case ConsoleKey.LeftArrow:
-                        selected--;
-                        if (selected < 0) selected = 3;
-                        break;
-
-                    case ConsoleKey.Enter:
-                        if (selected == 3) 
-                        {
-                            isRunning = false;
-                            break;
-                        }
-                        return selected;
-                }
-                Console.Clear();
-                PrintMenu("CategoryMenu", selected);
-            }
-        }
-        return 0;
     }
     public static void ItemAdd()
     {
@@ -296,7 +162,6 @@ public class Program
         }
         THistory.Add(TransactionEnum.Add, repository.GetLastItem());
         Console.WriteLine("\nItem added succesfully!");
-        EnterToContinue();
     }
     public static void ItemSell()
     {
@@ -378,20 +243,5 @@ public class Program
         if (lowRange != null) if (value < lowRange) return false;
         if (highRange != null) if (value > highRange) return false;
         return true;
-    }
-    public static void EnterToContinue()
-    {
-        bool enter = false;
-
-        Console.WriteLine("\nPress Enter to continue...");
-
-        while (!enter)
-        {
-            if (Console.KeyAvailable)
-            {
-                ConsoleKeyInfo key = Console.ReadKey(true);
-                if (key.Key == ConsoleKey.Enter) enter = true;
-            }
-        }
     }
 }

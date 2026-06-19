@@ -4,11 +4,10 @@
 
 - [ ] **Add and list.** *As a user, I can add an entity and list everything currently held; the list grows and
   shrinks as I add or remove — no fixed cap.*
-  - [x] Add Items.
+  - [x] Add Items
   - [ ] Remove Items
-- [ ] **Undo my last action.** *As a user, I can undo my most recent change, and the one before it is untouched.*
-  - [ ] Undo Action
-  - [ ] Redo Action
+- [x] **Undo my last action.** *As a user, I can undo my most recent change, and the one before it is untouched.*
+  - [x] Undo Action
 - [ ] **Serve in arrival order.** *As a user, I can process pending requests (restock requests, a teller line, a
   play queue) in the exact order they arrived.*
   - Accept: the **first** request added is served first.
@@ -23,7 +22,7 @@
 - [ ] **Clear errors, no crash.** *As a user, when I ask for an entity that doesn't exist, I get a clear message
   naming what was missing, and the app keeps running.*
   - Accept: a bad lookup does not crash; the error names the missing id; the menu returns.
-- [ ] **A trail of what happened.** *As an operator, I can read a running log of what the app did, tagged by
+- [x] **A trail of what happened.** *As an operator, I can read a running log of what the app did, tagged by
   severity (routine / warning / failure).*
   - Accept: a session shows at least one info, one warning, and one error line tied to real actions.
 

@@ -1,3 +1,5 @@
+using Store.Domain;
+
 namespace Store.App;
 public partial class Program
 {
@@ -25,9 +27,9 @@ public partial class Program
             case "ItemActions":
                 Console.WriteLine("Item Actions Menu\n");
                 Console.WriteLine("Select an option:");
-                Console.WriteLine((selected == 0 ? "->" : "  ") + " Sell");
-                Console.WriteLine((selected == 1 ? "->" : "  ") + " Restock");
-                Console.WriteLine((selected == 2 ? "->" : "  ") + " Add Item");
+                Console.WriteLine((selected == 0 ? "->" : "  ") + " Add Item");
+                Console.WriteLine((selected == 1 ? "->" : "  ") + " Sell");
+                Console.WriteLine((selected == 2 ? "->" : "  ") + " Restock");
                 Console.WriteLine((selected == 3 ? "->" : "  ") + " Remove Item");
                 Console.WriteLine((selected == 4 ? "->" : "  ") + " Close");
                 break;
@@ -45,7 +47,7 @@ public partial class Program
                 break;
         }
     }
-    public static void SelectMenu(string menu, int options, Func<int, bool> executeFunc)
+    public static int SelectMenu(string menu, int options, Func<int, bool> executeFunc)
     {
         bool isRunning = true;
         int selected = 0;
@@ -81,6 +83,7 @@ public partial class Program
                 PrintMenu(menu, selected);
             }
         }
+        return selected;
     }
     public static bool MainMenuExecute(int selected)
     {
@@ -135,67 +138,26 @@ public partial class Program
         Console.Clear();
         switch (selected)
         {
-            case 0:// Sell
-                ItemSell();
-                EnterToContinue();
-                break;
-            case 1: // Restock
-                ItemRestock();
-                EnterToContinue();
-                break;
-            case 2: // Add Item
+            case 0: // Add Item
                 ItemAdd();
                 EnterToContinue();
                 break;
+            case 1: // Sell
+                ItemSell();
+                EnterToContinue();
+                break;
+            case 2: // Restock
+                ItemRestock();
+                EnterToContinue();
+                break;
             case 3: // Remove Item
-                // TODO: Item remove
+                ItemRemove();
+                EnterToContinue();
                 break;
             case 4:
                 return true;
         }
         return false;
-    }
-    public static int ItemCategorySelector()
-    {
-        bool isRunning = true;
-        int selected = 0;
-
-        Console.Clear();
-        PrintMenu("CategoryMenu", selected);
-        
-        while (isRunning)
-        {
-            if (Console.KeyAvailable)
-            {
-                ConsoleKeyInfo key = Console.ReadKey(true);
-                switch (key.Key)
-                {
-                    // Handle arrow movement in menu
-                    case ConsoleKey.DownArrow:
-                    case ConsoleKey.RightArrow:
-                        selected++;
-                        if (selected > 3) selected = 0;
-                        break;
-
-                    case ConsoleKey.UpArrow:
-                    case ConsoleKey.LeftArrow:
-                        selected--;
-                        if (selected < 0) selected = 3;
-                        break;
-
-                    case ConsoleKey.Enter:
-                        if (selected == 3) 
-                        {
-                            isRunning = false;
-                            break;
-                        }
-                        return selected;
-                }
-                Console.Clear();
-                PrintMenu("CategoryMenu", selected);
-            }
-        }
-        return 0;
     }
     public static void EnterToContinue()
     {

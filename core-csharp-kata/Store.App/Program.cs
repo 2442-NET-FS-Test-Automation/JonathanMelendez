@@ -1,4 +1,5 @@
-﻿using Store.Domain;
+﻿using Serilog;
+using Store.Domain;
 
 namespace Store.App;
 
@@ -8,7 +9,21 @@ public partial class Program
     private static History THistory = new(repository);
     public static void Main()
     {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.File("logs/Store.txt", 
+                rollingInterval: RollingInterval.Day, // Creates a new file each day
+                retainedFileCountLimit: 31,           // Cleans up logs older than 31 days
+                fileSizeLimitBytes: 10485760,         // 10 MB limit per file
+                rollOnFileSizeLimit: true)            // Rolls to a new file if size limit is met
+            .CreateLogger();
+
+        Log.Information("App started at {date}", DateTime.Now);
+
         while (true) SelectMenu("MainMenu", 4, MainMenuExecute);
+
+        Log.Information("App closed at {date}", DateTime.Now);
+        Log.CloseAndFlush();
     }
     public static void ItemList()
     {
@@ -55,6 +70,8 @@ public partial class Program
         }
         Console.WriteLine($"\n{numMatches} matches found.");
     }
+    
+    // Item Actions
     public static void ItemAdd()
     {
         Console.WriteLine("== Add Item ==");
@@ -83,8 +100,7 @@ public partial class Program
             if (!ValueCheck(stock, 0, null)) Console.Write("Should be >= 0. Try again: ");
             else loop = false;
         }
-
-        int selected = ItemCategorySelector();
+        int selected = SelectMenu("CategoryMenu", 3, option => true);
         
         switch (selected)
         {
@@ -159,9 +175,31 @@ public partial class Program
                 
                 repository.AddItem(ItemFactory.Create(ItemKind.Grocery, name, price, stock, expirationDate: date, weightKg: weight));
                 break;
+            case 3:
+                Console.WriteLine("\nItem creation cancelled!");
+                return;
         }
         THistory.Add(TransactionEnum.Add, repository.GetLastItem());
         Console.WriteLine("\nItem added succesfully!");
+    }
+    public static void ItemRemove()
+    {
+        //TODO
+        Console.Write("Type the ID of the item to remove: ");
+        int id = 0;
+        bool loop = true;
+        while (loop)
+        {
+            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{Item._nextId-1}): ");
+            if (!ValueCheck(id, 1, Item._nextId-1)) Console.Write($"Try again (1-{Item._nextId-1}): ");
+            else loop = false;
+        }
+        Item item = repository.GetItemById(id);
+        if (repository.RemoveById(id))
+        {
+            THistory.Add(TransactionEnum.Remove, item);
+            Console.WriteLine("Item Removed Succesfully");
+        }
     }
     public static void ItemSell()
     {

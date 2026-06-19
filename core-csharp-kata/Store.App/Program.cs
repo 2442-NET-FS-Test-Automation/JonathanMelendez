@@ -35,7 +35,30 @@ public partial class Program
     // Item Search
     public static void ItemSearchId()
     {
-        
+        int searchedId;
+        Console.WriteLine("Item Search by Item ID\n");
+
+        do Console.Write($"Type searched ID ({1}-{repository.GetLastItem().Id}): ");
+        while (!(int.TryParse(Console.ReadLine(), out searchedId) && ValueCheck(searchedId, 1, repository.GetLastItem().Id)));
+
+        try
+        {
+            Item searchedItem = repository.GetItemById(searchedId);
+
+            Console.Clear();
+            Console.WriteLine("Item Search by Item ID\n");
+            Console.WriteLine($"Item data found:");
+            
+            foreach (KeyValuePair<string, string> entry in searchedItem.Describe())
+            {
+                Console.WriteLine($"{entry.Key, 10}: {entry.Value}");
+            }
+
+        }
+        catch (ItemNotFoundException e)
+        {
+            Log.Error("Searched item with id {id} not found: {message}", e.Id, e.Message);
+        }
     }
     public static void ItemSearchName()
     {

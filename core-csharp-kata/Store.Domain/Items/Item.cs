@@ -21,4 +21,6 @@ public abstract class Item(string name, double price, int stock)
         return $"[{Id}] {Name} - ${Price:F2}: {Stock} available";
     }
     public abstract string GetDetails();
+
+    public abstract Dictionary<string, string> Describe();
 }

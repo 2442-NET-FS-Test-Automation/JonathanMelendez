@@ -66,7 +66,7 @@ The finished app must use **each** of these **somewhere** — you decide which s
 - [x] expression-bodied member · `partial` **or** `sealed`
 - [ ] shared `HttpClient` + `async`/`await` · `HttpRequestException` handling
 - [ ] JSON deserialization (read the fields, build via your factory/constructor)
-- [ ] `Regex` validation · one of: `out` param / nullable + lifted operator / pattern-matching `switch`
+- [x] `Regex` validation · one of: `out` param / nullable + lifted operator / pattern-matching `switch`
 
 
 ## Stretch (each group is required to pick 2 to implement.)
@@ -80,4 +80,4 @@ Pick atleast two (or come up with your own!). With three pairs of hands you have
 - [ ] Add a **second Serilog sink** (e.g. `.WriteTo.File(...)`) and confirm the call sites did not change.
 - [ ] Issue **two** HTTP requests with **`Task.WhenAll`** and confirm they overlap rather than run back-to-back.
 - [x] Add a **second design pattern** (e.g. ship both a repository *and* a factory) and name both in the PR.
-- [ ] Add a short **`CONTRIBUTING.md`** noting your team's branch/PR/review convention.
+- [x] Add a short **`CONTRIBUTING.md`** noting your team's branch/PR/review convention.

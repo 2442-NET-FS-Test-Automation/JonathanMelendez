@@ -1,9 +1,8 @@
 ﻿namespace Store.Domain;
 
-public abstract class Item(string name, double price, int stock)
+public abstract class Item(int id, string name, double price, int stock)
 {
-    public static int _nextId = 1;
-    public int Id { get; } = _nextId++;
+    public int Id { get; private set; } = id;
     public string Name { get; private set; } = name;
     public double Price { get; private set; } = price;
     public int Stock { get; private set; } = stock;

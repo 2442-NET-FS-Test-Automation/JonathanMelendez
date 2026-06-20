@@ -4,12 +4,25 @@ namespace Store.Domain;
 
 public class InMemStoreRepository : IStoreRepository
 {
-    private static Dictionary<int, Item> _items =  GenSeedItems();
+    private static Dictionary<int, Item> _items = [];
+    public InMemStoreRepository()
+    {
+        GenSeedItems();
+    }
     public void AddItem(Item item)
     {
-        _items.Add(item.Id, item); // This one throws when duplicates
+        try
+        {
+            _items.Add(item.Id, item); // This one throws when duplicates
+        }
+        catch (Exception e)
+        {
+            Log.Error("ItemAdd Error: {message}", e.Message);
+            return;
+        }
 
         Log.Information("Added {Name} with id {id}", item.Name, item.Id);
+
     }
     public List<Item> GetAllItems() => _items.Values.ToList();
     public Item GetLastItem() => _items.Last().Value;
@@ -33,16 +46,15 @@ public class InMemStoreRepository : IStoreRepository
         return false;
     }
 
-    private static Dictionary<int, Item> GenSeedItems()
+    private void GenSeedItems()
     {
-        Dictionary<int, Item> genItems = [];
-        genItems.Add(1, new Clothing("Shirt", 3, 10, "L", "White", "Poliester"));
-        genItems.Add(2, new Clothing("Pants", 4.5, 5, "XL", "Gray", "Silk"));
-        genItems.Add(3, new Electronic("Xbox Series Z", 500, 3, 2, 250));
-        genItems.Add(4, new Electronic("Potato Station", 800, 7, 1, 300));
-        genItems.Add(5, new Electronic("Televisor", 400, 12, 3, 50));
-        genItems.Add(6, new Grocery("Doritos", 0.8, 25, new DateOnly(2026, 10, 17), 0.2));
-        genItems.Add(7, new Grocery("Rice Bag", 0.8, 25, new DateOnly(2026, 10, 17), 1));
-        return genItems;
+        AddItem(ItemFactory.Create(ItemKind.Clothing, "Shirt", 3, 10, "L", "White", "Poliester"));
+        AddItem(ItemFactory.Create(ItemKind.Clothing, "Pants", 4.5, 5, "XL", "Gray", "Silk"));
+        AddItem(ItemFactory.Create(ItemKind.Electronics, "Xbox Series Z", 500, 3, warrantyYears: 2, powerConsumption: 250));
+        AddItem(ItemFactory.Create(ItemKind.Electronics, "Potato Station", 800, 7, warrantyYears: 1, powerConsumption: 300));
+        AddItem(ItemFactory.Create(ItemKind.Electronics, "Televisor", 400, 12, warrantyYears: 3, powerConsumption: 50));
+        AddItem(ItemFactory.Create(ItemKind.Grocery, "Doritos", 0.8, 25, expirationDate: new DateOnly(2026, 10, 17), weightKg: 0.2));
+        AddItem(ItemFactory.Create(ItemKind.Grocery, "Rice Bag", 0.8, 25, expirationDate: new DateOnly(2026, 10, 17), weightKg: 1));
+        AddItem(ItemFactory.Create(ItemKind.Pokemon, "pikachu", 100.50, 2, pokeId: 25, pokeType: "electric"));
     }
 }

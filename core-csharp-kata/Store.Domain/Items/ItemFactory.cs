@@ -2,6 +2,8 @@ namespace Store.Domain;
 
 public static class ItemFactory
 {
+    private static int _nextId = 1;
+    public static int getNextId => _nextId;
     public static Item Create(
         ItemKind kind,
         // int Id,
@@ -20,13 +22,17 @@ public static class ItemFactory
         int powerConsumption = 0,
         // Specific Attributes of Grocery
         DateOnly expirationDate = new DateOnly(), 
-        double weightKg = 0
+        double weightKg = 0,
+        // Specific Attibutes of Pokemon
+        int pokeId = 1,
+        string pokeType = "normal"
     )
     {
         switch (kind)
         {
             case ItemKind.Clothing:
                 return new Clothing(
+                    _nextId++,
                     name,
                     price,
                     stock,
@@ -36,6 +42,7 @@ public static class ItemFactory
                 );
             case ItemKind.Electronics:
                 return new Electronic(
+                    _nextId++,
                     name,
                     price,
                     stock,
@@ -44,11 +51,21 @@ public static class ItemFactory
                 );
             case ItemKind.Grocery:
                 return new Grocery(
+                    _nextId++,
                     name,
                     price,
                     stock,
                     expirationDate,
                     weightKg
+                );
+            case ItemKind.Pokemon:
+                return new Pokemon(
+                    _nextId++,
+                    name,
+                    price,
+                    stock,
+                    pokeId,
+                    pokeType
                 );
         }
 

@@ -126,7 +126,7 @@ public partial class Program
 
     public static void ItemSearchCategory()
     {
-        int selected = SelectMenu("CategoryMenu", 3, option => true);
+        int selected = SelectMenu("CategoryMenu", 4, option => true);
         
         Console.WriteLine("Item Search by Category\n");
 
@@ -137,9 +137,9 @@ public partial class Program
             0   => "Clothing",
             1   => "Electronic",
             2   => "Groceries",
+            3   => "Pokemon",
+            _  => "Return",
             
-            <0  => "Return",
-            >2  => "Return"
         };
         if (inputCategory == "Return") return;
         
@@ -187,7 +187,7 @@ public partial class Program
             else loop = false;
         }
         
-        int selected = SelectMenu("CategoryAddMenu", 3, option => true);
+        int selected = SelectMenu("CategoryAddMenu", 4, option => true);
         
         switch (selected)
         {
@@ -262,7 +262,14 @@ public partial class Program
                 
                 repository.AddItem(ItemFactory.Create(ItemKind.Grocery, name, price, stock, expirationDate: date, weightKg: weight));
                 break;
-            case 3:
+            case 3: // Pokemon
+                // TODO: Consumption API
+                int gameId = 1;
+                string pokeTypes = "normal";
+
+                repository.AddItem(ItemFactory.Create(ItemKind.Pokemon, name, price, stock, pokeId: gameId, pokeType: pokeTypes));
+                break;
+            case 4:
                 Console.WriteLine("\nItem creation cancelled!");
                 return;
         }
@@ -277,8 +284,8 @@ public partial class Program
         bool loop = true;
         while (loop)
         {
-            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{Item._nextId-1}): ");
-            if (!ValueCheck(id, 1, Item._nextId-1)) Console.Write($"Try again (1-{Item._nextId-1}): ");
+            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{ItemFactory.getNextId-1}): ");
+            if (!ValueCheck(id, 1, ItemFactory.getNextId-1)) Console.Write($"Try again (1-{ItemFactory.getNextId-1}): ");
             else loop = false;
         }
         Item item = repository.GetItemById(id);
@@ -295,8 +302,8 @@ public partial class Program
         bool loop = true;
         while (loop)
         {
-            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{Item._nextId-1}): ");
-            if (!ValueCheck(id, 1, Item._nextId-1)) Console.Write($"Try again (1-{Item._nextId-1}): ");
+            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{ItemFactory.getNextId-1}): ");
+            if (!ValueCheck(id, 1, ItemFactory.getNextId-1)) Console.Write($"Try again (1-{ItemFactory.getNextId-1}): ");
             else loop = false;
         }
 
@@ -305,7 +312,7 @@ public partial class Program
         loop = true;
         while (loop)
         {
-            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{Item._nextId-1}): ");
+            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{ItemFactory.getNextId-1}): ");
             if (!ValueCheck(amount, 0, null)) Console.Write($"Should be >= 0. Try again: ");
             else loop = false;
         }
@@ -331,8 +338,8 @@ public partial class Program
         bool loop = true;
         while (loop)
         {
-            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{Item._nextId-1}): ");
-            if (!ValueCheck(id, 1, Item._nextId-1)) Console.Write($"Try again (1-{Item._nextId-1}): ");
+            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{ItemFactory.getNextId}): ");
+            if (!ValueCheck(id, 1, ItemFactory.getNextId-1)) Console.Write($"Try again (1-{ItemFactory.getNextId}): ");
             else loop = false;
         }
 
@@ -341,7 +348,7 @@ public partial class Program
         loop = true;
         while (loop)
         {
-            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{Item._nextId-1}): ");
+            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{ItemFactory.getNextId}): ");
             if (!ValueCheck(amount, 0, null)) Console.Write($"Should be >= 0. Try again: ");
             else loop = false;
         }

@@ -44,7 +44,8 @@ public partial class Program
                 Console.WriteLine((selected == 0 ? "->" : "  ") + " Clothing");
                 Console.WriteLine((selected == 1 ? "->" : "  ") + " Electronic");
                 Console.WriteLine((selected == 2 ? "->" : "  ") + " Grocery");
-                Console.WriteLine((selected == 3 ? "->" : "  ") + " Cancel");
+                Console.WriteLine((selected == 3 ? "->" : "  ") + " Pokemon");
+                Console.WriteLine((selected == 4 ? "->" : "  ") + " Cancel");
                 break;
             
             default:

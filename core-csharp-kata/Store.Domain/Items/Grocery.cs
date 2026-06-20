@@ -5,7 +5,7 @@ public class Grocery : Item
     public override string Category => "Groceries";
     public DateOnly ExpirationDate { get; }
     public double WeightKg { get; }
-    public Grocery(string name, double price, int stock, DateOnly expirationDate, double weightKg) : base(name, price, stock)
+    public Grocery(int id, string name, double price, int stock, DateOnly expirationDate, double weightKg) : base( id, name, price, stock)
     {
         ExpirationDate = expirationDate;
         WeightKg = weightKg;

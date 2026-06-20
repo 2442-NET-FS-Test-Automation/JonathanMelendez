@@ -4,6 +4,7 @@ public enum ItemKind
 {
     Clothing,
     Electronics,
-    Grocery
+    Grocery,
+    Pokemon
 
 }

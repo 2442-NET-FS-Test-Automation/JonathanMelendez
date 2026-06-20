@@ -6,7 +6,7 @@ public class Clothing : Item
     public string Size { get; }
     public string Color { get; }
     public string Material { get; }
-    public Clothing(string name, double price, int stock, string size, string color, string material) : base(name, price, stock)
+    public Clothing(int id, string name, double price, int stock, string size, string color, string material) : base(id, name, price, stock)
     {
         Size = size;
         Color = color;

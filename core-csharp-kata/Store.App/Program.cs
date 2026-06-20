@@ -24,7 +24,7 @@ public partial class Program
     }
     public static void ItemList()
     {
-        Console.WriteLine("== All Item List ==\n");
+        Console.WriteLine("All Item List\n");
         foreach (Item item in repository.GetAllItems())
         {
             Console.WriteLine(item);
@@ -38,8 +38,8 @@ public partial class Program
         int searchedId;
         Console.WriteLine("Item Search by Item ID\n");
 
-        do Console.Write($"Type searched ID ({1}-{repository.GetLastItem().Id}): ");
-        while (!(int.TryParse(Console.ReadLine(), out searchedId) && ValueCheck(searchedId, 1, repository.GetLastItem().Id)));
+        do Console.Write($"Type searched ID ({1}-{ItemFactory.getNextId}): ");
+        while (!(int.TryParse(Console.ReadLine(), out searchedId) && ValueCheck(searchedId, 1, ItemFactory.getNextId)));
 
         try
         {
@@ -81,26 +81,23 @@ public partial class Program
         Console.Clear();
         Console.WriteLine($"Items containing '{searchedName}'\n");
         int numMatches = 0;
-        foreach (Item item in repository.GetAllItems())
+
+        foreach (Item item in repository.Find(item => item.Name.ToLower().Contains(searchedName.ToLower())))
         {
-            if (item.Name.ToLower().Contains(searchedName.ToLower()))
-            {
-                Console.WriteLine(item);
-                Console.WriteLine($"      {item.GetDetails()}");
-                numMatches++;
-            }
+            Console.WriteLine(item);
+            Console.WriteLine($"      {item.GetDetails()}");
+            numMatches++;
         }
         Console.WriteLine($"\n{numMatches} matches found.");
     }
-
     public static void ItemSearchPrice()
     {
         double? rangeMin = null;
         double? rangeMax = null;
         do
         { 
-            Console.WriteLine("Item Search by Item Price range\n");
-            Console.Clear();  
+            Console.Clear();
+            Console.WriteLine("Item Search by Item Price Range\n");
             Console.Write("Type search min range: ");
             rangeMin = double.TryParse(Console.ReadLine(), out double min_)? min_ : null;
             Console.Write("Type search max range: ");
@@ -109,49 +106,40 @@ public partial class Program
         }
         while( rangeMin == null || rangeMax == null || (rangeMin > rangeMax));
 
-        int numMatches = 0;
+        Console.WriteLine($"Item Search by Item Price Range ({rangeMin}-{rangeMax})\n");
 
-        foreach (Item item in repository.GetAllItems())
+        int numMatches = 0;
+        foreach (Item item in repository.Find(item => item.Price >= rangeMin && item.Price <= rangeMax))
         {
-            if ( item.Price >= rangeMin && item.Price <= rangeMax)
-            {
-                Console.WriteLine(item);
-                Console.WriteLine($"      {item.GetDetails()}");
-                numMatches++;
-            }
+            Console.WriteLine(item);
+            Console.WriteLine($"      {item.GetDetails()}");
+            numMatches++;
         }
         Console.WriteLine($"\n{numMatches} matches found.");
-
     }
-
     public static void ItemSearchCategory()
     {
         int selected = SelectMenu("CategorySearchMenu", OPTIONS_CATEGORY, option => true);
         
-        Console.WriteLine("Item Search by Category\n");
-
-        int numMatches = 0;
-
         string inputCategory = selected switch
         {
             0   => "Clothing",
             1   => "Electronic",
             2   => "Groceries",
             3   => "Pokemon",
-            _  => "Return",
-            
+            _  => "Return"
         };
         if (inputCategory == "Return") return;
         
+        Console.Clear();
+        Console.WriteLine($"Item Search by Category - {inputCategory}\n");
 
-        foreach (Item item in repository.GetAllItems())
+        int numMatches = 0;
+        foreach (Item item in repository.Find(item => item.Category == inputCategory))
         {
-            if (item.Category == inputCategory)
-            {
-                Console.WriteLine(item);
-                Console.WriteLine($"      {item.GetDetails()}");
-                numMatches++;
-            }
+            Console.WriteLine(item);
+            Console.WriteLine($"      {item.GetDetails()}");
+            numMatches++;
         }
         Console.WriteLine($"\n{numMatches} matches found.");
         

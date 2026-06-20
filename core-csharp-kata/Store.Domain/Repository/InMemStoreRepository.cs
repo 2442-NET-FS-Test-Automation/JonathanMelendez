@@ -5,10 +5,7 @@ namespace Store.Domain;
 public class InMemStoreRepository : IStoreRepository
 {
     private static Dictionary<int, Item> _items = [];
-    public InMemStoreRepository()
-    {
-        GenSeedItems();
-    }
+    public InMemStoreRepository() => GenSeedItems();
     public void AddItem(Item item)
     {
         try
@@ -33,7 +30,13 @@ public class InMemStoreRepository : IStoreRepository
         Log.Warning("Lookup failed for {id}", id);
         throw new ItemNotFoundException(id);
     }
-
+    public IEnumerable<Item> Find(Predicate<Item> match)
+    {
+        foreach (Item item in _items.Values)
+        {
+            if(match(item)) yield return item;
+        }
+    }
     public bool RemoveById(int id)
     {
         if (_items.Remove(id))

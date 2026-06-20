@@ -19,7 +19,7 @@
 
 ### Failing safely & a log trail
 
-- [ ] **Clear errors, no crash.** *As a user, when I ask for an entity that doesn't exist, I get a clear message
+- [x] **Clear errors, no crash.** *As a user, when I ask for an entity that doesn't exist, I get a clear message
   naming what was missing, and the app keeps running.*
   - Accept: a bad lookup does not crash; the error names the missing id; the menu returns.
 - [x] **A trail of what happened.** *As an operator, I can read a running log of what the app did, tagged by
@@ -37,7 +37,7 @@
 - [x] **Browse everything in one pass.** *As a user, I can browse the whole collection with a single list
   command.*
   - Accept: one command walks every entity in order.
-- [ ] **Search by my own condition.** *As a user, I can search for entities matching a condition I supply (price
+- [x] **Search by my own condition.** *As a user, I can search for entities matching a condition I supply (price
   over X, balance under Y, genre = Z).*
   - Accept: the same search command returns different results for different conditions.
 
@@ -62,7 +62,7 @@ The finished app must use **each** of these **somewhere** — you decide which s
 - [x] one pattern: repository behind an interface **or** factory
 - [x] Serilog structured logging (info / warning / error)
 - [x] `Dictionary<K,V>` + `TryGetValue` · `HashSet<T>`
-- [ ] `IEnumerable<T>` + `yield return` · lambda / `Predicate<T>` filter
+- [x] `IEnumerable<T>` + `yield return` · lambda / `Predicate<T>` filter
 - [x] expression-bodied member · `partial` **or** `sealed`
 - [ ] shared `HttpClient` + `async`/`await` · `HttpRequestException` handling
 - [ ] JSON deserialization (read the fields, build via your factory/constructor)

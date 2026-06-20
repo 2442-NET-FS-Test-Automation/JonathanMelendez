@@ -11,6 +11,7 @@ public interface IStoreRepository
     public Item GetLastItem();
     Item GetItemById(int id); // Throws ItemNotFoundException if not found
     List<Item> GetAllItems();
+    public IEnumerable<Item> Find(Predicate<Item> match);
 
     public bool RemoveById(int id);
 }

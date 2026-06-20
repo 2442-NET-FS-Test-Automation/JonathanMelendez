@@ -4,6 +4,11 @@ using Serilog;
 namespace Store.App;
 public partial class Program
 {
+    private static readonly int OPTIONS_MAIN_MENU = 4;
+    private static readonly int OPTIONS_ITEM_SEARCH_MENU = 4;
+    private static readonly int OPTIONS_ITEM_ACTIONS_MENU = 4;
+    private static readonly int OPTIONS_CATEGORY = 4;
+
     public static void PrintMenu(string menuName, int selected)
     {   
         switch (menuName)
@@ -36,7 +41,7 @@ public partial class Program
                 Console.WriteLine((selected == 4 ? "->" : "  ") + " Close");
                 break;
             case "CategoryAddMenu":
-            case "CategoryMenu":
+            case "CategorySearchMenu":
                 if (menuName == "CategoryAddMenu") Console.WriteLine("Add Item\n");
                 else Console.WriteLine("Item Search by Category\n");
 
@@ -101,10 +106,10 @@ public partial class Program
                 EnterToContinue();
                 break;
             case 1:
-                SelectMenu("ItemSearch", 4, ItemSearchExecute);
+                SelectMenu("ItemSearch", OPTIONS_ITEM_SEARCH_MENU, ItemSearchExecute);
                 break;
             case 2:
-                SelectMenu("ItemActions", 4, ItemActionsExecute);
+                SelectMenu("ItemActions", OPTIONS_ITEM_ACTIONS_MENU, ItemActionsExecute);
                 break;
             case 3:
                 // TODO: Make a menu and make it fancier

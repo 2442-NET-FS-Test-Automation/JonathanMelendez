@@ -20,7 +20,7 @@ public partial class Program
 
         Log.Information("App started at {date}", DateTime.Now);
 
-        while (true) SelectMenu("MainMenu", 4, MainMenuExecute);
+        while (true) SelectMenu("MainMenu", OPTIONS_MAIN_MENU, MainMenuExecute);
     }
     public static void ItemList()
     {
@@ -126,7 +126,7 @@ public partial class Program
 
     public static void ItemSearchCategory()
     {
-        int selected = SelectMenu("CategoryMenu", 4, option => true);
+        int selected = SelectMenu("CategorySearchMenu", OPTIONS_CATEGORY, option => true);
         
         Console.WriteLine("Item Search by Category\n");
 
@@ -187,7 +187,7 @@ public partial class Program
             else loop = false;
         }
         
-        int selected = SelectMenu("CategoryAddMenu", 4, option => true);
+        int selected = SelectMenu("CategoryAddMenu", OPTIONS_CATEGORY, option => true);
         
         switch (selected)
         {

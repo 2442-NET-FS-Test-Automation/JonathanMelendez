@@ -73,11 +73,11 @@ The finished app must use **each** of these **somewhere** — you decide which s
 
 Pick atleast two (or come up with your own!). With three pairs of hands you have room to pick a couple — but the core (every ship criterion) comes first. Once every ship criterion passes you can:
 
-- [ ] Add a **generic constraint** to your custom generic type (e.g. `where T : class`) and note in the PR why it
+- [x] Add a **generic constraint** to your custom generic type (e.g. `where T : class`) and note in the PR why it
   fits or does not fit your element type.
 - [ ] Add a **second `yield` method** that filters during iteration and confirm nothing runs until you `foreach`
   it (deferred execution).
 - [ ] Add a **second Serilog sink** (e.g. `.WriteTo.File(...)`) and confirm the call sites did not change.
 - [ ] Issue **two** HTTP requests with **`Task.WhenAll`** and confirm they overlap rather than run back-to-back.
-- [ ] Add a **second design pattern** (e.g. ship both a repository *and* a factory) and name both in the PR.
+- [x] Add a **second design pattern** (e.g. ship both a repository *and* a factory) and name both in the PR.
 - [ ] Add a short **`CONTRIBUTING.md`** noting your team's branch/PR/review convention.

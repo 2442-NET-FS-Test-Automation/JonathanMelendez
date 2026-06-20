@@ -1,5 +1,6 @@
 ﻿using Serilog;
 using Store.Domain;
+using System.Numerics;
 
 namespace Store.App;
 
@@ -35,11 +36,9 @@ public partial class Program
     // Item Search
     public static void ItemSearchId()
     {
-        int searchedId;
         Console.WriteLine("Item Search by Item ID\n");
-
-        do Console.Write($"Type searched ID ({1}-{ItemFactory.getNextId}): ");
-        while (!(int.TryParse(Console.ReadLine(), out searchedId) && ValueCheck(searchedId, 1, ItemFactory.getNextId)));
+        Console.Write($"Type searched ID ({1}-{ItemFactory.getNextId}): ");
+        int searchedId = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
 
         try
         {
@@ -57,7 +56,13 @@ public partial class Program
         }
         catch (ItemNotFoundException e)
         {
+            Console.WriteLine("Item not found. Sorry.");
             Log.Error("Searched item with id {id} not found: {message}", e.Id, e.Message);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Something went wrong. Sorry.");
+            Log.Error("Exception found: {Message}", e.Message);
         }
     }
     public static void ItemSearchName()
@@ -104,7 +109,7 @@ public partial class Program
             rangeMax = double.TryParse(Console.ReadLine(), out double max_)? max_ : null;
             Console.Clear();
         }
-        while( rangeMin == null || rangeMax == null || (rangeMin > rangeMax));
+        while(rangeMin == null || rangeMax == null || (rangeMin > rangeMax));
 
         Console.WriteLine($"Item Search by Item Price Range ({rangeMin}-{rangeMax})\n");
 
@@ -142,38 +147,22 @@ public partial class Program
             numMatches++;
         }
         Console.WriteLine($"\n{numMatches} matches found.");
-        
     }
 
     // Item Actions
     public static void ItemAdd()
     {
-        Console.WriteLine("Add Item");
-
         bool loop = true;
+        Console.WriteLine("Add Item\n");
 
-        Console.WriteLine();
         Console.Write("Type the name: ");
         string name = Console.ReadLine()!;
 
         Console.Write("Type the price: ");
-        double price = 0;
-        while (loop)
-        {
-            while(!double.TryParse(Console.ReadLine(), out price)) Console.Write("Try again: ");
-            if (!ValueCheck(price, 0, null)) Console.Write("Should be >= 0. Try again: ");
-            else loop = false;
-        }
+        double price = ValueCheck<double>(0, null);
         
         Console.Write("Type the initial stock: ");
-        int stock = 0; 
-        loop = true;
-        while (loop)
-        {
-            while(!int.TryParse(Console.ReadLine(), out stock)) Console.Write("Try again: ");
-            if (!ValueCheck(stock, 0, null)) Console.Write("Should be >= 0. Try again: ");
-            else loop = false;
-        }
+        int stock = ValueCheck<int>(0, null);
         
         int selected = SelectMenu("CategoryAddMenu", OPTIONS_CATEGORY, option => true);
         
@@ -207,24 +196,10 @@ public partial class Program
                 break;
             case 1: // Electronic
                 Console.Write("Type years of warranty: ");
-                int warranty = 0;
-                loop = true;
-                while (loop)
-                {
-                    while(!int.TryParse(Console.ReadLine(), out warranty)) Console.Write("Try again: ");
-                    if (!ValueCheck(warranty, 0, null)) Console.Write("Should be >= 0. Try again: ");
-                    else loop = false;
-                }
+                int warranty = ValueCheck<int>(0, null);
                 
                 Console.Write("Type the power consumption: ");
-                int power = 0;
-                loop = true;
-                while (loop)
-                {
-                    while(!int.TryParse(Console.ReadLine(), out power)) Console.Write("Try again: ");
-                    if (!ValueCheck(power, 0, null)) Console.Write("Should be >= 0. Try again: ");
-                    else loop = false;
-                }
+                int power = ValueCheck<int>(0, null);
                 
                 repository.AddItem(ItemFactory.Create(ItemKind.Electronics, name, price, stock, warrantyYears: warranty, powerConsumption: power));
                 break;
@@ -239,14 +214,7 @@ public partial class Program
                 }
                 
                 Console.Write("Type the weight: ");
-                double weight = 0;
-                loop = true;
-                while (loop)
-                {
-                    while(!double.TryParse(Console.ReadLine(), out weight)) Console.Write("Try again: ");
-                    if (!ValueCheck(weight, 0, null)) Console.Write("Should be >= 0. Try again: ");
-                    else loop = false;
-                }
+                double weight = ValueCheck<double>(0, null);
                 
                 repository.AddItem(ItemFactory.Create(ItemKind.Grocery, name, price, stock, expirationDate: date, weightKg: weight));
                 break;
@@ -268,78 +236,54 @@ public partial class Program
     {
         //TODO
         Console.Write("Type the ID of the item to remove: ");
-        int id = 0;
-        bool loop = true;
-        while (loop)
-        {
-            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{ItemFactory.getNextId-1}): ");
-            if (!ValueCheck(id, 1, ItemFactory.getNextId-1)) Console.Write($"Try again (1-{ItemFactory.getNextId-1}): ");
-            else loop = false;
-        }
+        int id = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
         Item item = repository.GetItemById(id);
         if (repository.RemoveById(id))
         {
             THistory.Add(TransactionEnum.Remove, item);
             Console.WriteLine("Item Removed Succesfully");
+            return;
         }
+        Console.WriteLine("Something went wrong. Sorry.");
     }
     public static void ItemSell()
     {
         Console.Write("Type the ID of the item sold: ");
-        int id = 0;
-        bool loop = true;
-        while (loop)
-        {
-            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{ItemFactory.getNextId-1}): ");
-            if (!ValueCheck(id, 1, ItemFactory.getNextId-1)) Console.Write($"Try again (1-{ItemFactory.getNextId-1}): ");
-            else loop = false;
-        }
+        int id = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
 
         Console.Write("Type the amount sold: ");
-        int amount = 0;
-        loop = true;
-        while (loop)
-        {
-            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{ItemFactory.getNextId-1}): ");
-            if (!ValueCheck(amount, 0, null)) Console.Write($"Should be >= 0. Try again: ");
-            else loop = false;
-        }
+        int amount = ValueCheck<int>(0, null);
 
-        foreach(Item item in repository.GetAllItems())
+        Item item;
+        try // Shouldnt fail but just in case
         {
-            if (item.Id == id)
-            {
-                if (item.Sell(amount)) 
-                {   
-                    THistory.Add(TransactionEnum.Sell, item, amount);
-                    Console.WriteLine($"Sold {amount} of {item.Name}");
-                }
-                else Console.WriteLine("There is not enough stock!");
-                break;
+            item = repository.GetItemById(id);
+            if (item.Sell(amount))
+            {   
+                THistory.Add(TransactionEnum.Sell, item, amount);
+                Console.WriteLine($"Sold {amount} of {item.Name}");
             }
+            else Console.WriteLine("There is not enough stock!");
+        } 
+        catch (ItemNotFoundException e)
+        {
+            Console.WriteLine("Item not found. Sorry.");
+            Log.Warning("Item with {id} not found: {Message}", e.Id, e.Message);
         }
+        catch (Exception e)
+        {
+            Console.WriteLine("Something went wrong. Sorry.");
+            Log.Error("Exception found: {Message}", e.Message);
+        }
+        
     }
     public static void ItemRestock()
     {
         Console.Write("Type the ID of the item to restock: ");
-        int id = 0;
-        bool loop = true;
-        while (loop)
-        {
-            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{ItemFactory.getNextId}): ");
-            if (!ValueCheck(id, 1, ItemFactory.getNextId-1)) Console.Write($"Try again (1-{ItemFactory.getNextId}): ");
-            else loop = false;
-        }
+        int id = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
 
         Console.Write("Type the amount to restock: ");
-        int amount = 0;
-        loop = true;
-        while (loop)
-        {
-            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{ItemFactory.getNextId}): ");
-            if (!ValueCheck(amount, 0, null)) Console.Write($"Should be >= 0. Try again: ");
-            else loop = false;
-        }
+        int amount = ValueCheck<int>(0, null);
 
         foreach(Item item in repository.GetAllItems()) 
             if (item.Id == id)
@@ -352,13 +296,25 @@ public partial class Program
     }
     
     // Helper methods
-    public static bool ValueCheck(int value, int? lowRange, int? highRange)
+    public static T ValueCheck<T>(T? lowRange, T? highRange, string? message = null) where T : struct, INumber<T>
     {
-        if (lowRange != null) if (value < lowRange) return false;
-        if (highRange != null) if (value > highRange) return false;
-        return true;
+        bool loop = true;
+        T value = T.Zero;
+        while (loop)
+        {
+            while(!T.TryParse(Console.ReadLine(), null, out value)) 
+                Console.Write("Try again: ");
+            if (!ValueInRange<T>(value, lowRange, highRange))
+            {
+                if (message != null) Console.Write(message);
+                else Console.Write($"{((lowRange != null) ? $"Should be >= {lowRange}. " : "")}Try again: ");
+            }
+            
+            else loop = false;
+        }
+        return value;
     }
-    public static bool ValueCheck(double value, double? lowRange, double? highRange)
+    public static bool ValueInRange<T>(T value, T? lowRange, T? highRange) where T : struct, INumber<T>
     {
         if (lowRange != null) if (value < lowRange) return false;
         if (highRange != null) if (value > highRange) return false;

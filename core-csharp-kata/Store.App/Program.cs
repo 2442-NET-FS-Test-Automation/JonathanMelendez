@@ -150,7 +150,7 @@ public partial class Program
     }
 
     // Item Actions
-    public static void ItemAdd()
+    public static async Task ItemAdd()
     {
         bool loop = true;
         Console.WriteLine("Add Item\n");
@@ -165,6 +165,7 @@ public partial class Program
         int stock = ValueCheck<int>(0, null);
         
         int selected = SelectMenu("CategoryAddMenu", OPTIONS_CATEGORY, option => true);
+        bool isSuccesfully = true;
         
         switch (selected)
         {
@@ -220,17 +221,27 @@ public partial class Program
                 break;
             case 3: // Pokemon
                 // TODO: Consumption API
-                int gameId = 1;
-                string pokeTypes = "normal";
-
-                repository.AddItem(ItemFactory.Create(ItemKind.Pokemon, name, price, stock, pokeId: gameId, pokeType: pokeTypes));
+                PokeApiClient client = new();
+                var pokeResult = await client.FetchByNameAsync(name);
+                
+                if (pokeResult != null)
+                {
+                    (int gameId, string pokeTypes) = pokeResult.Value;
+                    // Console.WriteLine($"Adding new pokemon {name}, {price}, {stock}, {gameId}, {pokeTypes}");
+                    repository.AddItem(ItemFactory.Create(ItemKind.Pokemon, name, price, stock, pokeId: gameId, pokeType: pokeTypes));
+                }
+                else
+                {
+                    isSuccesfully = false;
+                }
+                
                 break;
             case 4:
                 Console.WriteLine("\nItem creation cancelled!");
                 return;
         }
         THistory.Add(TransactionEnum.Add, repository.GetLastItem());
-        Console.WriteLine("\nItem added succesfully!");
+        Console.WriteLine(isSuccesfully ? "\nItem added succesfully!" : "\nItem NOT added!");
     }
     public static void ItemRemove()
     {

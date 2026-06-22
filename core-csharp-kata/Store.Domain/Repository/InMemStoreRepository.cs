@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Serilog;
 
 namespace Store.Domain;
@@ -5,7 +7,11 @@ namespace Store.Domain;
 public class InMemStoreRepository : IStoreRepository
 {
     private static Dictionary<int, Item> _items = [];
-    public InMemStoreRepository() => GenSeedItems();
+    public InMemStoreRepository()
+    {
+        GenSeedItemsAsync().GetAwaiter().GetResult();
+        
+    } 
     public void AddItem(Item item)
     {
         try
@@ -49,7 +55,7 @@ public class InMemStoreRepository : IStoreRepository
         return false;
     }
 
-    private void GenSeedItems()
+    private async Task GenSeedItemsAsync()
     {
         AddItem(ItemFactory.Create(ItemKind.Clothing, "Shirt", 3, 10, "L", "White", "Poliester"));
         AddItem(ItemFactory.Create(ItemKind.Clothing, "Pants", 4.5, 5, "XL", "Gray", "Silk"));
@@ -58,6 +64,45 @@ public class InMemStoreRepository : IStoreRepository
         AddItem(ItemFactory.Create(ItemKind.Electronics, "Televisor", 400, 12, warrantyYears: 3, powerConsumption: 50));
         AddItem(ItemFactory.Create(ItemKind.Grocery, "Doritos", 0.8, 25, expirationDate: new DateOnly(2026, 10, 17), weightKg: 0.2));
         AddItem(ItemFactory.Create(ItemKind.Grocery, "Rice Bag", 0.8, 25, expirationDate: new DateOnly(2026, 10, 17), weightKg: 1));
-        AddItem(ItemFactory.Create(ItemKind.Pokemon, "pikachu", 100.50, 2, pokeId: 25, pokeType: "electric"));
+        
+        PokeApiClient client = new();
+
+        Console.WriteLine("\n    [RUBRIC] Starting Task.WhenAll to verify OVERLAP..."); 
+        Stopwatch chrono = Stopwatch.StartNew();
+        
+        long timeSendingPikachu = chrono.ElapsedMilliseconds;
+        Task<(int, string)?> itemPikachu = client.FetchByNameAsync("pikachu");
+        Console.WriteLine($"   -> [PIKACHU] Request HTTP sent at {timeSendingPikachu} ms");
+
+        long timeSendingCharizard = chrono.ElapsedMilliseconds;
+        Task<(int, string)?> itemCharizard = client.FetchByNameAsync("charizard");
+        Console.WriteLine($"   -> [CHARIZARD] Request HTTP sent at {timeSendingCharizard} ms");
+
+        // IMPORTANT: Waiting for both
+        await Task.WhenAll(itemPikachu, itemCharizard);
+        
+        long timeEndBoth = chrono.ElapsedMilliseconds;
+        Console.WriteLine("\n\n\n");
+        Console.WriteLine($"   [BOTH] Responses recived in parallel at {timeEndBoth} ms");
+        Console.WriteLine($"   Total time of network OVERLAP: {timeEndBoth} ms\n");
+
+        var resultPikachu = itemPikachu.Result;
+        var resultCharizard = itemCharizard.Result;
+
+        if (resultPikachu is not null && resultCharizard is not null)
+        {
+            var (PokeIds, pokeTypes) = resultPikachu.Value;
+            AddItem(ItemFactory.Create(ItemKind.Pokemon, "pikachu", 100.50, 2, 
+                pokeId: PokeIds, 
+                pokeType: pokeTypes));
+
+            (PokeIds, pokeTypes) = resultCharizard.Value;
+            AddItem(ItemFactory.Create(ItemKind.Pokemon, "charizard", 250.00, 1, 
+                pokeId: PokeIds, 
+                pokeType: pokeTypes));
+        }
+        
+        Console.WriteLine("\nPress enter key to continue..."); Console.ReadLine();
+
     }
 }

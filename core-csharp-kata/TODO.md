@@ -8,10 +8,10 @@
   - [x] Remove Items
 - [x] **Undo my last action.** *As a user, I can undo my most recent change, and the one before it is untouched.*
   - [x] Undo Action
-- [ ] **Serve in arrival order.** *As a user, I can process pending requests (restock requests, a teller line, a
+- [x] **Serve in arrival order.** *As a user, I can process pending requests (restock requests, a teller line, a
   play queue) in the exact order they arrived.*
   - Accept: the **first** request added is served first.
-- [ ] **Reorder my working list.** *As a user, I can move an urgent entity to the front of a working list without
+- [x] **Reorder my working list.** *As a user, I can move an urgent entity to the front of a working list without
   rebuilding the list.*
   - Accept: an item sent to the front prints first on the next listing.
 - [ ] **See a grid view.** *As a user, I can view a fixed rows×columns layout (aisle×shelf, lot×row, week×day).*

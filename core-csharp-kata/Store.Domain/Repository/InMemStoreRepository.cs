@@ -94,4 +94,33 @@ public class InMemStoreRepository : IStoreRepository
                 pokeType: pokeTypes));
         }
     }
+    
+    public List<Item> OrderList (IStoreRepository.OrderType match)
+    {
+        List<Item> itemList = _items.Values.ToList();
+        
+        switch (match)
+        {
+            case IStoreRepository.OrderType.ById:
+                itemList = itemList.OrderBy(i => i.Id).ToList();
+                break;
+            case IStoreRepository.OrderType.ByName:
+                itemList = itemList.OrderBy(i => i.Name).ToList();
+                break;
+            case IStoreRepository.OrderType.ByPrice:
+                itemList = itemList.OrderBy(i => i.Price).ToList();
+                break;
+            case IStoreRepository.OrderType.ByStock:
+                itemList = itemList.OrderBy(i => i.Stock).ToList();
+                break;
+            case IStoreRepository.OrderType.ByCategory:
+                itemList = itemList.OrderBy(i => i.Category).ToList();
+                break;
+            default:
+                itemList = GetAllItems();
+                break;
+        }
+
+        return itemList;
+    }
 }

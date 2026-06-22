@@ -142,23 +142,23 @@ public partial class Program
         switch (selected)
         {
             case 0: // Order by ID
-                ItemList();
+                ItemList(IStoreRepository.OrderType.ById);
                 EnterToContinue();
                 break;
             case 1: // Order by Name
-                ItemList();
+                ItemList(IStoreRepository.OrderType.ByName);
                 EnterToContinue();
                 break;
             case 2: // Order by Price
-                ItemList();
+                ItemList(IStoreRepository.OrderType.ByPrice);
                 EnterToContinue();
                 break;
             case 3: // Order by stock
-                ItemList();
+                ItemList(IStoreRepository.OrderType.ByStock);
                 EnterToContinue();
                 break;
             case 4: // Order by Category
-                ItemList();
+                ItemList(IStoreRepository.OrderType.ByCategory);
                 EnterToContinue();
                 break;
             case 5:

@@ -1,6 +1,14 @@
 namespace Store.Domain;
 public interface IStoreRepository
 {
+    public enum OrderType
+    {
+        ById,
+        ByName,
+        ByPrice,
+        ByStock,
+        ByCategory
+    }
     // CRUD
     public void AddItem(Item item);
     public void AddItem(Item[] items)
@@ -14,4 +22,6 @@ public interface IStoreRepository
     public IEnumerable<Item> Find(Predicate<Item> match);
 
     public bool RemoveById(int id);
+
+    public List<Item> OrderList( OrderType match);
 }

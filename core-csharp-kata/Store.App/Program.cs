@@ -23,10 +23,10 @@ public partial class Program
 
         while (true) await SelectMenu("MainMenu", OPTIONS_MAIN_MENU, MainMenuExecute);
     }
-    public static void ItemList()
+    public static void ItemList(IStoreRepository.OrderType match)
     {
         Console.WriteLine("All Item List\n");
-        foreach (Item item in repository.GetAllItems())
+        foreach (Item item in repository.OrderList(match))
         {
             Console.WriteLine(item);
             Console.WriteLine($"      {item.GetDetails()}");

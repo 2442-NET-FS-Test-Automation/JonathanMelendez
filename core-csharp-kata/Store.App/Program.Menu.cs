@@ -5,6 +5,7 @@ namespace Store.App;
 public partial class Program
 {
     private static readonly int OPTIONS_MAIN_MENU = 4;
+    private static readonly int OPTIONS_ITEM_LIST_MENU = 5;
     private static readonly int OPTIONS_ITEM_SEARCH_MENU = 4;
     private static readonly int OPTIONS_ITEM_ACTIONS_MENU = 4;
     private static readonly int OPTIONS_CATEGORY = 4;
@@ -21,6 +22,16 @@ public partial class Program
                 Console.WriteLine((selected == 2 ? "->" : "  ") + " Item Actions");
                 Console.WriteLine((selected == 3 ? "->" : "  ") + " Transaction Undo");
                 Console.WriteLine((selected == 4 ? "->" : "  ") + " Close");
+                break;
+            case "ListMenu":
+                Console.WriteLine("List Items\n");
+                Console.WriteLine("Select an option:");
+                Console.WriteLine((selected == 0 ? "->" : "  ") + " By ID");
+                Console.WriteLine((selected == 1 ? "->" : "  ") + " By Name");
+                Console.WriteLine((selected == 2 ? "->" : "  ") + " By Price Range");
+                Console.WriteLine((selected == 3 ? "->" : "  ") + " By Stock");
+                Console.WriteLine((selected == 4 ? "->" : "  ") + " By Category");
+                Console.WriteLine((selected == 5 ? "->" : "  ") + " Close");
                 break;
             case "ItemSearch":
                 Console.WriteLine("Item Search Menu\n");
@@ -103,8 +114,7 @@ public partial class Program
         switch (selected)
         {
             case 0:
-                ItemList();
-                EnterToContinue();
+                await SelectMenu("ListMenu", OPTIONS_ITEM_LIST_MENU, ItemListExecute);
                 break;
             case 1:
                 await SelectMenu("ItemSearch", OPTIONS_ITEM_SEARCH_MENU, ItemSearchExecute);
@@ -125,6 +135,36 @@ public partial class Program
                 break;
         }
         return true;
+    }
+    public static async Task<bool> ItemListExecute(int selected)
+    {
+        Console.Clear();
+        switch (selected)
+        {
+            case 0: // Order by ID
+                ItemList();
+                EnterToContinue();
+                break;
+            case 1: // Order by Name
+                ItemList();
+                EnterToContinue();
+                break;
+            case 2: // Order by Price
+                ItemList();
+                EnterToContinue();
+                break;
+            case 3: // Order by stock
+                ItemList();
+                EnterToContinue();
+                break;
+            case 4: // Order by Category
+                ItemList();
+                EnterToContinue();
+                break;
+            case 5:
+                return true;
+        }
+        return false;
     }
     public static async Task<bool> ItemSearchExecute(int selected)
     {

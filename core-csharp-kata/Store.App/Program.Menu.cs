@@ -58,7 +58,7 @@ public partial class Program
                 break;
         }
     }
-    public static int SelectMenu(string menu, int options, Func<int, bool> executeFunc)
+    public static async Task <int> SelectMenu(string menu, int options, Func<int, Task<bool>> executeFunc)
     {
         bool isRunning = true;
         int selected = 0;
@@ -87,16 +87,17 @@ public partial class Program
                         break;
 
                     case ConsoleKey.Enter:
-                        if(executeFunc(selected)) isRunning = false;
+                        if(await executeFunc(selected)) isRunning = false;
                         break;
                 }
                 Console.Clear();
                 PrintMenu(menu, selected);
             }
+            await Task.Delay(10);
         }
         return selected;
     }
-    public static bool MainMenuExecute(int selected)
+    public static async Task<bool> MainMenuExecute(int selected)
     {
         Console.Clear();
         switch (selected)
@@ -106,13 +107,14 @@ public partial class Program
                 EnterToContinue();
                 break;
             case 1:
-                SelectMenu("ItemSearch", OPTIONS_ITEM_SEARCH_MENU, ItemSearchExecute);
+                await SelectMenu("ItemSearch", OPTIONS_ITEM_SEARCH_MENU, ItemSearchExecute);
                 break;
             case 2:
-                SelectMenu("ItemActions", OPTIONS_ITEM_ACTIONS_MENU, ItemActionsExecute);
+                await SelectMenu("ItemActions", OPTIONS_ITEM_ACTIONS_MENU, ItemActionsExecute);
                 break;
             case 3:
                 // TODO: Make a menu and make it fancier
+                Console.WriteLine("Transaction Undo\n");
                 THistory.Undo();
                 EnterToContinue();
                 break;
@@ -124,7 +126,7 @@ public partial class Program
         }
         return true;
     }
-    public static bool ItemSearchExecute(int selected)
+    public static async Task<bool> ItemSearchExecute(int selected)
     {
         Console.Clear();
         switch (selected)
@@ -142,7 +144,7 @@ public partial class Program
                 EnterToContinue();
                 break;
             case 3: // Search by Category
-                ItemSearchCategory();
+                await ItemSearchCategory();
                 EnterToContinue();
                 break;
             case 4:
@@ -150,13 +152,13 @@ public partial class Program
         }
         return false;
     }
-    public static bool ItemActionsExecute(int selected)
+    public static async Task<bool> ItemActionsExecute(int selected)
     {
         Console.Clear();
         switch (selected)
         {
             case 0: // Add Item
-                ItemAdd();
+                await ItemAdd();
                 EnterToContinue();
                 break;
             case 1: // Sell

@@ -8,7 +8,7 @@ public partial class Program
 {
     private static IStoreRepository repository = new InMemStoreRepository();
     private static History THistory = new(repository);
-    public static void Main()
+    public static async Task Main()
     {
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
@@ -21,7 +21,7 @@ public partial class Program
 
         Log.Information("App started at {date}", DateTime.Now);
 
-        while (true) SelectMenu("MainMenu", OPTIONS_MAIN_MENU, MainMenuExecute);
+        while (true) await SelectMenu("MainMenu", OPTIONS_MAIN_MENU, MainMenuExecute);
     }
     public static void ItemList()
     {
@@ -37,7 +37,7 @@ public partial class Program
     public static void ItemSearchId()
     {
         Console.WriteLine("Item Search by Item ID\n");
-        Console.Write($"Type searched ID ({1}-{ItemFactory.getNextId}): ");
+        Console.Write($"Type searched ID ({1}-{ItemFactory.getNextId-1}): ");
         int searchedId = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
 
         try
@@ -122,9 +122,9 @@ public partial class Program
         }
         Console.WriteLine($"\n{numMatches} matches found.");
     }
-    public static void ItemSearchCategory()
+    public static async Task ItemSearchCategory()
     {
-        int selected = SelectMenu("CategorySearchMenu", OPTIONS_CATEGORY, option => true);
+        int selected = await SelectMenu("CategorySearchMenu", OPTIONS_CATEGORY, option => Task.FromResult(true));
         
         string inputCategory = selected switch
         {
@@ -151,11 +151,17 @@ public partial class Program
 
     // Item Actions
     public static async Task ItemAdd()
-    {
+    {   
         bool loop = true;
         Console.WriteLine("Add Item\n");
+        int selected = await SelectMenu("CategoryAddMenu", OPTIONS_CATEGORY, option => Task.FromResult(true));
+        if (selected == 4)
+        {
+            Console.WriteLine("\nItem creation cancelled!");
+            return;
+        }
 
-        Console.Write("Type the name: ");
+        Console.Write(selected == 3 ? "\nType the pokemon name to fetch: " : "\nType the item name: ");
         string name = Console.ReadLine()!;
 
         Console.Write("Type the price: ");
@@ -164,7 +170,6 @@ public partial class Program
         Console.Write("Type the initial stock: ");
         int stock = ValueCheck<int>(0, null);
         
-        int selected = SelectMenu("CategoryAddMenu", OPTIONS_CATEGORY, option => true);
         bool isSuccesfully = true;
         
         switch (selected)
@@ -220,7 +225,6 @@ public partial class Program
                 repository.AddItem(ItemFactory.Create(ItemKind.Grocery, name, price, stock, expirationDate: date, weightKg: weight));
                 break;
             case 3: // Pokemon
-                // TODO: Consumption API
                 PokeApiClient client = new();
                 var pokeResult = await client.FetchByNameAsync(name);
                 
@@ -230,35 +234,44 @@ public partial class Program
                     // Console.WriteLine($"Adding new pokemon {name}, {price}, {stock}, {gameId}, {pokeTypes}");
                     repository.AddItem(ItemFactory.Create(ItemKind.Pokemon, name, price, stock, pokeId: gameId, pokeType: pokeTypes));
                 }
-                else
-                {
-                    isSuccesfully = false;
-                }
-                
+                else isSuccesfully = false;
                 break;
-            case 4:
-                Console.WriteLine("\nItem creation cancelled!");
-                return;
         }
-        THistory.Add(TransactionEnum.Add, repository.GetLastItem());
-        Console.WriteLine(isSuccesfully ? "\nItem added succesfully!" : "\nItem NOT added!");
+        if (isSuccesfully) {
+            THistory.Add(TransactionEnum.Add, repository.GetLastItem());
+            Console.WriteLine(selected == 3 ? "\nPokemon added succesfully!" : "\nItem added succesfully!");
+        }
+        else Console.WriteLine("\nPokemon NOT added, fetch failed!");
     }
     public static void ItemRemove()
     {
-        //TODO
+        Console.WriteLine("Item Remove\n");
         Console.Write("Type the ID of the item to remove: ");
         int id = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
-        Item item = repository.GetItemById(id);
-        if (repository.RemoveById(id))
+        try
         {
-            THistory.Add(TransactionEnum.Remove, item);
-            Console.WriteLine("Item Removed Succesfully");
-            return;
+            Item item = repository.GetItemById(id);
+            if (repository.RemoveById(id))
+            {
+                THistory.Add(TransactionEnum.Remove, item);
+                Console.WriteLine("\nItem Removed Succesfully");
+                return;
+            }
         }
-        Console.WriteLine("Something went wrong. Sorry.");
+        catch (ItemNotFoundException e)
+        {
+            Console.WriteLine("\nItem not found. Sorry.");
+            Log.Error("Tried to remove non existing item with id {id}: {message}", e.Id, e.Message);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("\nSomething went wrong. Sorry.");
+            Log.Error("Exception found: {Message}", e.Message);
+        }
     }
     public static void ItemSell()
     {
+        Console.WriteLine("Item Sell\n");
         Console.Write("Type the ID of the item sold: ");
         int id = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
 
@@ -278,32 +291,42 @@ public partial class Program
         } 
         catch (ItemNotFoundException e)
         {
-            Console.WriteLine("Item not found. Sorry.");
+            Console.WriteLine("\nItem not found. Sorry.");
             Log.Warning("Item with {id} not found: {Message}", e.Id, e.Message);
         }
         catch (Exception e)
         {
-            Console.WriteLine("Something went wrong. Sorry.");
+            Console.WriteLine("\nSomething went wrong. Sorry.");
             Log.Error("Exception found: {Message}", e.Message);
         }
         
     }
     public static void ItemRestock()
     {
+        Console.WriteLine("Item Restock\n");
         Console.Write("Type the ID of the item to restock: ");
         int id = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
 
         Console.Write("Type the amount to restock: ");
         int amount = ValueCheck<int>(0, null);
-
-        foreach(Item item in repository.GetAllItems()) 
-            if (item.Id == id)
-            {
-                THistory.Add(TransactionEnum.Restock, item, amount);
-                item.Restock(amount);
-                Console.WriteLine($"Added {amount} to stock of {item.Name}");
-                break;
-            }
+        
+        try
+        {
+            Item item = repository.GetItemById(id);
+            item.Restock(amount);
+            THistory.Add(TransactionEnum.Restock, item, amount);
+            Console.WriteLine($"Added {amount} to stock of {item.Name}");
+        }
+        catch (ItemNotFoundException e)
+        {
+            Console.WriteLine("\nItem not found. Sorry.");
+            Log.Error("Tried to restock non existing item with id {id}: {message}", e.Id, e.Message);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("\nSomething went wrong. Sorry.");
+            Log.Error("Exception found: {Message}", e.Message);
+        }
     }
     
     // Helper methods

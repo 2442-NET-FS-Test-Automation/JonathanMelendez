@@ -43,10 +43,10 @@
 
 ### Live data & input it can trust
 
-- [ ] **Enrich from a live source.** *As a user, I can add or enrich an entity using real data fetched from a
+- [x] **Enrich from a live source.** *As a user, I can add or enrich an entity using real data fetched from a
   public online source, and the app stays responsive while it fetches.*
   - Accept: the fetched data shows up on the entity; the app does not freeze during the call.
-- [ ] **Survive a network error.** *As a user, if the fetch fails the app reports it and keeps running instead
+- [x] **Survive a network error.** *As a user, if the fetch fails the app reports it and keeps running instead
   of crashing.*
   - Accept: a failed fetch is logged and the command reports "nothing fetched"; the app does not crash.
 - [x] **Reject bad input.** *As a user, the app refuses a malformed identifier before it saves anything.*
@@ -64,8 +64,8 @@ The finished app must use **each** of these **somewhere** — you decide which s
 - [x] `Dictionary<K,V>` + `TryGetValue` · `HashSet<T>`
 - [x] `IEnumerable<T>` + `yield return` · lambda / `Predicate<T>` filter
 - [x] expression-bodied member · `partial` **or** `sealed`
-- [ ] shared `HttpClient` + `async`/`await` · `HttpRequestException` handling
-- [ ] JSON deserialization (read the fields, build via your factory/constructor)
+- [x] shared `HttpClient` + `async`/`await` · `HttpRequestException` handling
+- [x] JSON deserialization (read the fields, build via your factory/constructor)
 - [x] `Regex` validation · one of: `out` param / nullable + lifted operator / pattern-matching `switch`
 
 

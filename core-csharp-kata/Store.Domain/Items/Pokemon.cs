@@ -22,9 +22,10 @@ public class Pokemon : Item
         return new Dictionary<string, string>
         {
             ["ID"]          = $"{Id}",
+            ["Name"]        = $"{Name}",
             ["Stock"]       = $"{Stock}",
             ["Price"]       = $"{Price}",
-            ["PokeId"]   = $"{PokeId}",
+            ["PokeId"]      = $"{PokeId}",
             ["PokeType"]    = $"{PokeType}"
         };
     }

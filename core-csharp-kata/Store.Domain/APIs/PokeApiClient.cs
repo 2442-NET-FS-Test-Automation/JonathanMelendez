@@ -14,6 +14,7 @@ public class PokeApiClient
         try
         {
             string jsonResponse = await client.GetStringAsync(url);
+            Log.Information("Fetching pokemon with name {name} from pokeapi", name);
             return Parse(jsonResponse);
         }
         catch (HttpRequestException ex)

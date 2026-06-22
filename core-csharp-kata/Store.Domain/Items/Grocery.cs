@@ -19,6 +19,7 @@ public class Grocery : Item
         return new Dictionary<string, string>
         {
             ["ID"] = $"{Id}",
+            ["Name"] = $"{Name}",
             ["Stock"] = $"{Stock}",
             ["Price"] = $"{Price}",
             ["Expiration Date"] = $"{ExpirationDate}",

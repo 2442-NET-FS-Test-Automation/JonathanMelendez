@@ -22,6 +22,7 @@ public class Clothing : Item
         return new Dictionary<string, string>
         {
             ["ID"] = $"{Id}",
+            ["Name"] = $"{Name}",
             ["Stock"] = $"{Stock}",
             ["Price"] = $"{Price}",
             ["Size"] = $"{Size}",

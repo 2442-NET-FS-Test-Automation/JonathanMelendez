@@ -19,6 +19,7 @@ public class Electronic : Item
         return new Dictionary<string, string>
         {
             ["ID"] = $"{Id}",
+            ["Name"] = $"{Name}",
             ["Stock"] = $"{Stock}",
             ["Price"] = $"{Price}",
             ["Years of warranty"] = $"{WarrantyYears}",

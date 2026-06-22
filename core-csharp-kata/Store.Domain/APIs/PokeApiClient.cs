@@ -14,7 +14,7 @@ public class PokeApiClient
         try
         {
             string jsonResponse = await client.GetStringAsync(url);
-            Log.Information("Fetching pokemon with name {name} from pokeapi", name);
+            Log.Information("Fetched pokemon with name {name} from pokeapi", name);
             return Parse(jsonResponse);
         }
         catch (HttpRequestException ex)
@@ -39,13 +39,11 @@ public class PokeApiClient
             return null;
         }
 
-        
         int pokeId = pokeIdElement.GetInt32();
         string pokeType = pokeTypeElement[0]
                             .GetProperty("type").GetProperty("name")
                             .GetString() ?? "UntrakedType";
 
         return (pokeId, pokeType);
-        
     }
 }

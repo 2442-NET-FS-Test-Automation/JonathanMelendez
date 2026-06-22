@@ -67,24 +67,16 @@ public class InMemStoreRepository : IStoreRepository
         
         PokeApiClient client = new();
 
-        Console.WriteLine("\n    [RUBRIC] Starting Task.WhenAll to verify OVERLAP..."); 
-        Stopwatch chrono = Stopwatch.StartNew();
+        Log.Information("Starting Task.WhenAll to verify OVERLAP...");
         
-        long timeSendingPikachu = chrono.ElapsedMilliseconds;
         Task<(int, string)?> itemPikachu = client.FetchByNameAsync("pikachu");
-        Console.WriteLine($"   -> [PIKACHU] Request HTTP sent at {timeSendingPikachu} ms");
+        Log.Information("   -> [PIKACHU] Request HTTP sent");
 
-        long timeSendingCharizard = chrono.ElapsedMilliseconds;
         Task<(int, string)?> itemCharizard = client.FetchByNameAsync("charizard");
-        Console.WriteLine($"   -> [CHARIZARD] Request HTTP sent at {timeSendingCharizard} ms");
+        Log.Information("   -> [CHARIZARD] Request HTTP sent");
 
         // IMPORTANT: Waiting for both
         await Task.WhenAll(itemPikachu, itemCharizard);
-        
-        long timeEndBoth = chrono.ElapsedMilliseconds;
-        Console.WriteLine("\n\n\n");
-        Console.WriteLine($"   [BOTH] Responses recived in parallel at {timeEndBoth} ms");
-        Console.WriteLine($"   Total time of network OVERLAP: {timeEndBoth} ms\n");
 
         var resultPikachu = itemPikachu.Result;
         var resultCharizard = itemCharizard.Result;
@@ -101,8 +93,5 @@ public class InMemStoreRepository : IStoreRepository
                 pokeId: PokeIds, 
                 pokeType: pokeTypes));
         }
-        
-        Console.WriteLine("\nPress enter key to continue..."); Console.ReadLine();
-
     }
 }

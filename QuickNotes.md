@@ -182,3 +182,25 @@ Parents/ childs should be substitutable
 Single reponsability but interface
 #### Dependency inversion
 Not have direct dependencies
+
+## SQL
+
+### SQL Sublanguages
+#### DDL - Data Definition Language
+- Create
+- Alter
+- Drop
+- Truncate
+#### DML - Data Manipulation Language
+- Insert
+- Input
+- Delete
+#### DQL - Data Query Language
+- Select
+#### TCL - Transaction Control Language
+- Begin
+- Rollback
+- Commit
+#### DCL - Data Control Language
+- Grant
+- Revoke 

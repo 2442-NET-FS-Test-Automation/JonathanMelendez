@@ -25,7 +25,7 @@ public partial class Program
     }
     public static void ItemList(IStoreRepository.OrderType match)
     {
-        Console.WriteLine("All Item List\n");
+        Console.WriteLine($"Item List {match}\n");
         foreach (Item item in repository.OrderList(match))
         {
             Console.WriteLine(item);

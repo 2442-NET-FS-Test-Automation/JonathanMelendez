@@ -1,126 +1,76 @@
-﻿using Store.Domain;
+﻿using Serilog;
+using Store.Domain;
+using System.Numerics;
 
 namespace Store.App;
 
-public class Program
+public partial class Program
 {
-    private static List<Item> Items = GetSeedItems();
-    private static List<string> History = [$"{DateTime.Now} - Program started"];
-    public static void Main()
+    private static IStoreRepository repository = new InMemStoreRepository();
+    private static History THistory = new(repository);
+    public static async Task Main()
     {
-        bool isRunning = true;
-        int selected = 0;
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.File("logs/Store.txt", 
+                rollingInterval: RollingInterval.Day, // Creates a new file each day
+                retainedFileCountLimit: 31,           // Cleans up logs older than 31 days
+                fileSizeLimitBytes: 10485760,         // 10 MB limit per file
+                rollOnFileSizeLimit: true)            // Rolls to a new file if size limit is met
+            .CreateLogger();
 
-        Console.Clear();
-        PrintMenu("MainMenu", selected);
-        
-        while (isRunning)
-        {
-            if (Console.KeyAvailable)
-            {
-                ConsoleKeyInfo key = Console.ReadKey(true);
-                switch (key.Key)
-                {
-                    // Handle arrow movement in menu
-                    case ConsoleKey.DownArrow:
-                    case ConsoleKey.RightArrow:
-                        selected++;
-                        if (selected > 6) selected = 0;
-                        break;
+        Log.Information("App started at {date}", DateTime.Now);
 
-                    case ConsoleKey.UpArrow:
-                    case ConsoleKey.LeftArrow:
-                        selected--;
-                        if (selected < 0) selected = 6;
-                        break;
-
-                    case ConsoleKey.Enter:
-                        ExecuteMainMenuSelected(selected);
-                        break;
-                }
-                Console.Clear();
-                PrintMenu("MainMenu", selected);
-            }
-        }
+        while (true) await SelectMenu("MainMenu", OPTIONS_MAIN_MENU, MainMenuExecute);
     }
-    public static void PrintMenu(string menuName, int selected)
-    {   
-        switch (menuName)
-        {
-            case "MainMenu":
-                Console.WriteLine("Jonnhy's Bank Main Menu");
-                Console.WriteLine("Select an option:");
-                Console.WriteLine((selected == 0 ? "->" : "  ") + " List Items");
-                Console.WriteLine((selected == 1 ? "->" : "  ") + " Search Item");
-                Console.WriteLine((selected == 2 ? "->" : "  ") + " Add Item");
-                Console.WriteLine((selected == 3 ? "->" : "  ") + " Sell");
-                Console.WriteLine((selected == 4 ? "->" : "  ") + " Restock");
-                Console.WriteLine((selected == 5 ? "->" : "  ") + " Transaction History");
-                Console.WriteLine((selected == 6 ? "->" : "  ") + " Close");
-                break;
-            case "CategoryMenu":
-                Console.WriteLine("== Add Item ==\n");
-                Console.WriteLine("Select a category for the new item.");
-                Console.WriteLine((selected == 0 ? "->" : "  ") + " Clothing");
-                Console.WriteLine((selected == 1 ? "->" : "  ") + " Electronic");
-                Console.WriteLine((selected == 2 ? "->" : "  ") + " Grocery");
-                Console.WriteLine((selected == 3 ? "->" : "  ") + " Cancel");
-                break;
-            default:
-                Console.WriteLine($"{menuName} not implemented");
-                break;
-
-        }
-        
-    }
-    public static void ExecuteMainMenuSelected(int selected)
+    public static void ItemList(IStoreRepository.OrderType match)
     {
-        Console.Clear();
-        switch (selected)
-        {
-            case 0:
-                ItemList();
-                EnterToContinue();
-                break;
-            case 1:
-                ItemSearch();
-                EnterToContinue();
-                break;
-            case 2:
-                ItemAddMenu();
-                break;
-            case 3:
-                ItemSell();
-                EnterToContinue();
-                break;
-            case 4:
-                ItemRestock();
-                EnterToContinue();
-                break;
-            case 5:
-                ShowHistory();
-                EnterToContinue();
-                break;
-            case 6:
-                System.Environment.Exit(0);
-                break;
-        }
-    }
-    public static void ItemList()
-    {
-        Console.WriteLine("== All Item List ==\n");
-        foreach (Item item in Items)
+        Console.WriteLine($"Item List {match}\n");
+        foreach (Item item in repository.OrderList(match))
         {
             Console.WriteLine(item);
             Console.WriteLine($"      {item.GetDetails()}");
         }
     }
-    public static void ItemSearch()
+    
+    // Item Search
+    public static void ItemSearchId()
+    {
+        Console.WriteLine("Item Search by Item ID\n");
+        Console.Write($"Type searched ID ({1}-{ItemFactory.getNextId-1}): ");
+        int searchedId = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
+
+        try
+        {
+            Item searchedItem = repository.GetItemById(searchedId);
+
+            Console.Clear();
+            Console.WriteLine("Item Search by Item ID\n");
+            Console.WriteLine($"Item data found:");
+            
+            foreach (KeyValuePair<string, string> entry in searchedItem.Describe())
+            {
+                Console.WriteLine($"{entry.Key, 10}: {entry.Value}");
+            }
+
+        }
+        catch (ItemNotFoundException e)
+        {
+            Console.WriteLine("Item not found. Sorry.");
+            Log.Error("Searched item with id {id} not found: {message}", e.Id, e.Message);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Something went wrong. Sorry.");
+            Log.Error("Exception found: {Message}", e.Message);
+        }
+    }
+    public static void ItemSearchName()
     {
         string searchedName;
         do
         {
-            Console.WriteLine("== Item Search ==\n");
+            Console.WriteLine("Item Search by Item Name\n");
 
             Console.Write("Type search term: ");
             searchedName = Console.ReadLine()!;
@@ -134,94 +84,100 @@ public class Program
         while (searchedName.Length < 1);
 
         Console.Clear();
-        Console.WriteLine($"== Items containing '{searchedName}' ==\n");
+        Console.WriteLine($"Items containing '{searchedName}'\n");
         int numMatches = 0;
-        foreach (Item item in Items)
+
+        foreach (Item item in repository.Find(item => item.Name.ToLower().Contains(searchedName.ToLower())))
         {
-            if (item.Name.ToLower().Contains(searchedName.ToLower()))
-            {
-                Console.WriteLine(item);
-                Console.WriteLine($"      {item.GetDetails()}");
-                numMatches++;
-            }
+            Console.WriteLine(item);
+            Console.WriteLine($"      {item.GetDetails()}");
+            numMatches++;
         }
         Console.WriteLine($"\n{numMatches} matches found.");
     }
-    public static void ItemAddMenu()
+    public static void ItemSearchPrice()
     {
-        bool isRunning = true;
-        int selected = 0;
-
-        Console.Clear();
-        PrintMenu("CategoryMenu", selected);
-        
-        while (isRunning)
-        {
-            if (Console.KeyAvailable)
-            {
-                ConsoleKeyInfo key = Console.ReadKey(true);
-                switch (key.Key)
-                {
-                    // Handle arrow movement in menu
-                    case ConsoleKey.DownArrow:
-                    case ConsoleKey.RightArrow:
-                        selected++;
-                        if (selected > 3) selected = 0;
-                        break;
-
-                    case ConsoleKey.UpArrow:
-                    case ConsoleKey.LeftArrow:
-                        selected--;
-                        if (selected < 0) selected = 3;
-                        break;
-
-                    case ConsoleKey.Enter:
-                        if (selected == 3) 
-                        {
-                            isRunning = false;
-                            break;
-                        }
-                        ItemAdd(selected);
-                        break;
-                }
-                Console.Clear();
-                PrintMenu("CategoryMenu", selected);
-            }
+        double? rangeMin = null;
+        double? rangeMax = null;
+        do
+        { 
+            Console.Clear();
+            Console.WriteLine("Item Search by Item Price Range\n");
+            Console.Write("Type search min range: ");
+            rangeMin = double.TryParse(Console.ReadLine(), out double min_)? min_ : null;
+            Console.Write("Type search max range: ");
+            rangeMax = double.TryParse(Console.ReadLine(), out double max_)? max_ : null;
+            Console.Clear();
         }
-    }
-    public static void ItemAdd(int selected)
-    {
-        bool loop = true;
+        while(rangeMin == null || rangeMax == null || (rangeMin > rangeMax));
 
-        Console.WriteLine();
-        Console.Write("Type the name: ");
+        Console.WriteLine($"Item Search by Item Price Range ({rangeMin}-{rangeMax})\n");
+
+        int numMatches = 0;
+        foreach (Item item in repository.Find(item => item.Price >= rangeMin && item.Price <= rangeMax))
+        {
+            Console.WriteLine(item);
+            Console.WriteLine($"      {item.GetDetails()}");
+            numMatches++;
+        }
+        Console.WriteLine($"\n{numMatches} matches found.");
+    }
+    public static async Task ItemSearchCategory()
+    {
+        int selected = await SelectMenu("CategorySearchMenu", OPTIONS_CATEGORY, option => Task.FromResult(true));
+        
+        string inputCategory = selected switch
+        {
+            0   => "Clothing",
+            1   => "Electronic",
+            2   => "Groceries",
+            3   => "Pokemon",
+            _  => "Return"
+        };
+        if (inputCategory == "Return") return;
+        
+        Console.Clear();
+        Console.WriteLine($"Item Search by Category - {inputCategory}\n");
+
+        int numMatches = 0;
+        foreach (Item item in repository.Find(item => item.Category == inputCategory))
+        {
+            Console.WriteLine(item);
+            Console.WriteLine($"      {item.GetDetails()}");
+            numMatches++;
+        }
+        Console.WriteLine($"\n{numMatches} matches found.");
+    }
+
+    // Item Actions
+    public static async Task ItemAdd()
+    {   
+        bool loop = true;
+        Console.WriteLine("Add Item\n");
+        int selected = await SelectMenu("CategoryAddMenu", OPTIONS_CATEGORY, option => Task.FromResult(true));
+        if (selected == 4)
+        {
+            Console.WriteLine("\nItem creation cancelled!");
+            return;
+        }
+
+        Console.Write(selected == 3 ? "\nType the pokemon name to fetch: " : "\nType the item name: ");
         string name = Console.ReadLine()!;
 
         Console.Write("Type the price: ");
-        double price = 0;
-        while (loop)
-        {
-            while(!double.TryParse(Console.ReadLine(), out price)) Console.Write("Try again: ");
-            if (!ValueCheck(price, 0, null)) Console.Write("Should be >= 0. Try again: ");
-            else loop = false;
-        }
+        double price = ValueCheck<double>(0, null);
         
         Console.Write("Type the initial stock: ");
-        int stock = 0; 
-        loop = true;
-        while (loop)
-        {
-            while(!int.TryParse(Console.ReadLine(), out stock)) Console.Write("Try again: ");
-            if (!ValueCheck(stock, 0, null)) Console.Write("Should be >= 0. Try again: ");
-            else loop = false;
-        }
+        int stock = ValueCheck<int>(0, null);
+        
+        bool isSuccesfully = true;
         
         switch (selected)
         {
             case 0: // Clothing
                 string[] sizes = ["CH", "M", "L", "XL", "XXL"];
 
-                Console.Write($"Type the size (CH, M, L, XL, XXL): ");
+                Console.Write($"\nType the size (CH, M, L, XL, XXL): ");
                 loop = true;
                 string size = "";
                 while (loop)
@@ -242,197 +198,160 @@ public class Program
                 Console.Write("Type the material: ");
                 string material = Console.ReadLine()!;
 
-                Items.Add(new Clothing(name, price, stock, size, color, material));
+                repository.AddItem(ItemFactory.Create(ItemKind.Clothing, name, price, stock, size, color, material));
                 break;
             case 1: // Electronic
                 Console.Write("Type years of warranty: ");
-                int warranty = 0;
-                loop = true;
-                while (loop)
-                {
-                    while(!int.TryParse(Console.ReadLine(), out warranty)) Console.Write("Try again: ");
-                    if (!ValueCheck(warranty, 0, null)) Console.Write("Should be >= 0. Try again: ");
-                    else loop = false;
-                }
+                int warranty = ValueCheck<int>(0, null);
                 
                 Console.Write("Type the power consumption: ");
-                int power = 0;
-                loop = true;
-                while (loop)
-                {
-                    while(!int.TryParse(Console.ReadLine(), out power)) Console.Write("Try again: ");
-                    if (!ValueCheck(power, 0, null)) Console.Write("Should be >= 0. Try again: ");
-                    else loop = false;
-                }
+                int power = ValueCheck<int>(0, null);
                 
-                Items.Add(new Electronic(name, price, stock, warranty, power));
+                repository.AddItem(ItemFactory.Create(ItemKind.Electronics, name, price, stock, warrantyYears: warranty, powerConsumption: power));
                 break;
             case 2: // Grocery
-                Console.Write("Type the year of expiration: ");
-                int year = 0;
+                Console.Write("Type the expiration date (yyyy-MM-dd): ");
+                DateOnly date = new();
                 loop = true;
                 while (loop)
                 {
-                    while(!int.TryParse(Console.ReadLine(), out year)) Console.Write("Try again: ");
-                    if (!ValueCheck(year, DateTime.Now.Year, null)) Console.Write("Try again: ");
-                    else loop = false;
-                }
-                
-                Console.Write("Type the month of expiration: ");
-                int month = 0;
-                loop = true;
-                while (loop)
-                {
-                    while(!int.TryParse(Console.ReadLine(), out month)) Console.Write("Try again: ");
-                    if (!ValueCheck(month, 0, 12)) Console.Write("Try again: ");
-                    else loop = false;
-                }
-                
-                Console.Write("Type the day of expiration: ");
-                int day = 0;
-                loop = true;
-                while (loop)
-                {
-                    while(!int.TryParse(Console.ReadLine(), out day)) Console.Write("Try again: ");
-                    if (!ValueCheck(day, 0, 31)) Console.Write("Should be >= 0. Try again: ");
+                    if(!DateOnly.TryParseExact(Console.ReadLine(), "yyyy-MM-dd", out date)) Console.Write("Try again: ");
                     else loop = false;
                 }
                 
                 Console.Write("Type the weight: ");
-                double weight = 0;
-                loop = true;
-                while (loop)
-                {
-                    while(!double.TryParse(Console.ReadLine(), out weight)) Console.Write("Try again: ");
-                    if (!ValueCheck(weight, 0, null)) Console.Write("Should be >= 0. Try again: ");
-                    else loop = false;
-                }
+                double weight = ValueCheck<double>(0, null);
                 
-                Items.Add(new Grocery(name, price, stock, new DateOnly(year, month, day), weight));
+                repository.AddItem(ItemFactory.Create(ItemKind.Grocery, name, price, stock, expirationDate: date, weightKg: weight));
+                break;
+            case 3: // Pokemon
+                PokeApiClient client = new();
+                var pokeResult = await client.FetchByNameAsync(name);
+                
+                if (pokeResult != null)
+                {
+                    (int gameId, string pokeTypes) = pokeResult.Value;
+                    // Console.WriteLine($"Adding new pokemon {name}, {price}, {stock}, {gameId}, {pokeTypes}");
+                    repository.AddItem(ItemFactory.Create(ItemKind.Pokemon, name, price, stock, pokeId: gameId, pokeType: pokeTypes));
+                }
+                else isSuccesfully = false;
                 break;
         }
-        AddHistory($"Added item with ID: {Items.Last().Id}");
-        Console.WriteLine("\nItem added succesfully!");
-        EnterToContinue();
+        if (isSuccesfully) {
+            THistory.Add(TransactionEnum.Add, repository.GetLastItem());
+            Console.WriteLine(selected == 3 ? "\nPokemon added succesfully!" : "\nItem added succesfully!");
+        }
+        else Console.WriteLine("\nPokemon NOT added, fetch failed!");
+    }
+    public static void ItemRemove()
+    {
+        Console.WriteLine("Item Remove\n");
+        Console.Write("Type the ID of the item to remove: ");
+        int id = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
+        try
+        {
+            Item item = repository.GetItemById(id);
+            if (repository.RemoveById(id))
+            {
+                THistory.Add(TransactionEnum.Remove, item);
+                Console.WriteLine("\nItem Removed Succesfully");
+                return;
+            }
+        }
+        catch (ItemNotFoundException e)
+        {
+            Console.WriteLine("\nItem not found. Sorry.");
+            Log.Error("Tried to remove non existing item with id {id}: {message}", e.Id, e.Message);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("\nSomething went wrong. Sorry.");
+            Log.Error("Exception found: {Message}", e.Message);
+        }
     }
     public static void ItemSell()
     {
+        Console.WriteLine("Item Sell\n");
         Console.Write("Type the ID of the item sold: ");
-        int id = 0;
-        bool loop = true;
-        while (loop)
-        {
-            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{Items.Last().Id}): ");
-            if (!ValueCheck(id, 1, Items.Last().Id)) Console.Write($"Try again (1-{Items.Last().Id}): ");
-            else loop = false;
-        }
+        int id = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
 
         Console.Write("Type the amount sold: ");
-        int amount = 0;
-        loop = true;
-        while (loop)
-        {
-            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{Items.Last().Id}): ");
-            if (!ValueCheck(amount, 0, null)) Console.Write($"Should be >= 0. Try again: ");
-            else loop = false;
-        }
+        int amount = ValueCheck<int>(0, null);
 
-        foreach(Item item in Items)
+        Item item;
+        try // Shouldnt fail but just in case
         {
-            if (item.Id == id)
-            {
-                if (item.Sell(amount)) 
-                {   
-                    AddHistory($"Sold item with ID: {item.Id}");
-                    Console.WriteLine($"Sold {amount} of {item.Name}");
-                }
-                else Console.WriteLine("There is not enough stock!");
-                break;
+            item = repository.GetItemById(id);
+            if (item.Sell(amount))
+            {   
+                THistory.Add(TransactionEnum.Sell, item, amount);
+                Console.WriteLine($"Sold {amount} of {item.Name}");
             }
+            else Console.WriteLine("There is not enough stock!");
+        } 
+        catch (ItemNotFoundException e)
+        {
+            Console.WriteLine("\nItem not found. Sorry.");
+            Log.Warning("Item with {id} not found: {Message}", e.Id, e.Message);
         }
+        catch (Exception e)
+        {
+            Console.WriteLine("\nSomething went wrong. Sorry.");
+            Log.Error("Exception found: {Message}", e.Message);
+        }
+        
     }
     public static void ItemRestock()
     {
+        Console.WriteLine("Item Restock\n");
         Console.Write("Type the ID of the item to restock: ");
-        int id = 0;
-        bool loop = true;
-        while (loop)
-        {
-            while(!int.TryParse(Console.ReadLine(), out id)) Console.Write($"Try again(1-{Items.Last().Id}): ");
-            if (!ValueCheck(id, 1, Items.Last().Id)) Console.Write($"Try again (1-{Items.Last().Id}): ");
-            else loop = false;
-        }
+        int id = ValueCheck<int>(1, ItemFactory.getNextId-1, $"Try again(1-{ItemFactory.getNextId-1}): ");
 
         Console.Write("Type the amount to restock: ");
-        int amount = 0;
-        loop = true;
-        while (loop)
+        int amount = ValueCheck<int>(0, null);
+        
+        try
         {
-            while(!int.TryParse(Console.ReadLine(), out amount)) Console.Write($"Try again(1-{Items.Last().Id}): ");
-            if (!ValueCheck(amount, 0, null)) Console.Write($"Should be >= 0. Try again: ");
-            else loop = false;
+            Item item = repository.GetItemById(id);
+            item.Restock(amount);
+            THistory.Add(TransactionEnum.Restock, item, amount);
+            Console.WriteLine($"Added {amount} to stock of {item.Name}");
         }
-
-        foreach(Item item in Items) 
-            if (item.Id == id)
-            {
-                AddHistory($"Restocked item with ID: {item.Id}");
-                item.Restock(amount);
-                Console.WriteLine($"Added {amount} to stock of {item.Name}");
-                break;
-            }
-    }
-    public static void ShowHistory()
-    {
-        Console.WriteLine("== Transactions History ==\n");
-        foreach (string entry in History)
+        catch (ItemNotFoundException e)
         {
-            Console.WriteLine(entry);
+            Console.WriteLine("\nItem not found. Sorry.");
+            Log.Error("Tried to restock non existing item with id {id}: {message}", e.Id, e.Message);
         }
-    }
-    public static void AddHistory(string newEntry)
-    {
-        History.Add($"{DateTime.Now} - {newEntry}");
+        catch (Exception e)
+        {
+            Console.WriteLine("\nSomething went wrong. Sorry.");
+            Log.Error("Exception found: {Message}", e.Message);
+        }
     }
     
     // Helper methods
-    public static List<Item> GetSeedItems()
+    public static T ValueCheck<T>(T? lowRange, T? highRange, string? message = null) where T : struct, INumber<T>
     {
-        return new List<Item> {
-            new Clothing("Shirt", 3, 10, "L", "White", "Poliester"),
-            new Clothing("Pants", 4.5, 5, "XL", "Gray", "Silk"),
-            new Electronic("Xbox Series Z", 500, 3, 2, 250),
-            new Electronic("Potato Station", 800, 7, 1, 300),
-            new Electronic("Televisor", 400, 12, 3, 50),
-            new Grocery("Doritos", 0.8, 25, new DateOnly(2026, 10, 17), 0.2),
-            new Grocery("Rice Bag", 0.8, 25, new DateOnly(2026, 10, 17), 1)
-        };
-    }
-    public static bool ValueCheck(int value, int? lowRange, int? highRange)
-    {
-        if (lowRange != null) if (value < lowRange) return false;
-        if (highRange != null) if (value > highRange) return false;
-        return true;
-    }
-    public static bool ValueCheck(double value, double? lowRange, double? highRange)
-    {
-        if (lowRange != null) if (value < lowRange) return false;
-        if (highRange != null) if (value > highRange) return false;
-        return true;
-    }
-    public static void EnterToContinue()
-    {
-        bool enter = false;
-
-        Console.WriteLine("\nPress Enter to continue...");
-
-        while (!enter)
+        bool loop = true;
+        T value = T.Zero;
+        while (loop)
         {
-            if (Console.KeyAvailable)
+            while(!T.TryParse(Console.ReadLine(), null, out value)) 
+                Console.Write("Try again: ");
+            if (!ValueInRange<T>(value, lowRange, highRange))
             {
-                ConsoleKeyInfo key = Console.ReadKey(true);
-                if (key.Key == ConsoleKey.Enter) enter = true;
+                if (message != null) Console.Write(message);
+                else Console.Write($"{((lowRange != null) ? $"Should be >= {lowRange}. " : "")}Try again: ");
             }
+            
+            else loop = false;
         }
+        return value;
+    }
+    public static bool ValueInRange<T>(T value, T? lowRange, T? highRange) where T : struct, INumber<T>
+    {
+        if (lowRange != null) if (value < lowRange) return false;
+        if (highRange != null) if (value > highRange) return false;
+        return true;
     }
 }

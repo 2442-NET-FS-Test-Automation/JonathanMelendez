@@ -1,9 +1,8 @@
 ﻿namespace Store.Domain;
 
-public abstract class Item(string name, double price, int stock)
+public abstract class Item(int id, string name, double price, int stock)
 {
-    private static int _nextId = 1;
-    public int Id { get; } = _nextId++;
+    public int Id { get; private set; } = id;
     public string Name { get; private set; } = name;
     public double Price { get; private set; } = price;
     public int Stock { get; private set; } = stock;
@@ -18,7 +17,9 @@ public abstract class Item(string name, double price, int stock)
     public void Restock(int amount) => Stock += amount;
     public override string ToString()
     {
-        return $"{Id} -> {Name} - ${Price:F2}: {Stock} available";
+        return $"[{Id}] {Name} - ${Price:F2}: {Stock} available";
     }
     public abstract string GetDetails();
+
+    public abstract Dictionary<string, string> Describe();
 }

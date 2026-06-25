@@ -190,16 +190,17 @@ Not have direct dependencies
 
 ### SQL Sublanguages
 #### DDL - Data Definition Language
-- Create
-- Alter
-- Drop
-- Truncate
+- CREATE    > Creates new tables, schemas, databases
+- Drop      > Deletes tables, schemas, databases, just like there werent there
+- TRUNCATE  > Deletes all data in a table - preserves table structure
+- ALTER     > Edit the structure of an existing table (columns, constraints, etc.)
 #### DML - Data Manipulation Language
-- Insert
-- Input
-- Delete
+- INSERT    > Add new rows to a table
+- UPDATE    > Update an existing row
+- DELETE    > Remove a row
 #### DQL - Data Query Language
-- Select
+- SELECT    > Retrieve a record a records from a database, table, etc.
+              Can be used along a lot of keywords (GROUP BY, HAVING, WHERE, LIKE, etc.)
 #### TCL - Transaction Control Language
 - Begin
 - Rollback
@@ -207,3 +208,26 @@ Not have direct dependencies
 #### DCL - Data Control Language
 - Grant
 - Revoke 
+
+### Keys
+Primary Key     - Chosen unique row ID
+Candidate Key   - Any column(s) that could potentially be PK
+Composite Key   - A key composed of 2+ keys (unique combination but not unique by themselves)
+Foreign Key     - Column holding another table's PK
+Unique Key      - No duplicates, but not used as PK
+Alternate Key   - A candidate key not chosen as PK
+
+### Table Normalization
+#### 1NF
+- Each cell MUST contain atomic values
+- Each record represents one instance of an entity
+- Remove repeating groups
+- Identify keys
+
+#### 2NF
+- Be in 1NF
+- Remove partial dependencies. (All non keys, depend entirely on the key (make more tables))
+
+#### 3NF
+- Be in 2NF
+- Remove transitive dependencies (no non-key attributes should depend on another non key attribute)

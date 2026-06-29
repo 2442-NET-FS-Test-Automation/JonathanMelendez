@@ -231,3 +231,14 @@ Alternate Key   - A candidate key not chosen as PK
 #### 3NF
 - Be in 2NF
 - Remove transitive dependencies (no non-key attributes should depend on another non key attribute)
+
+
+### ACID
+#### Atomicity
+All or nothing
+#### Consistency
+All data remains always in a valid state for what we are modeling
+#### Isolation
+Not overlapping/interference between transactions
+#### Durability
+Once a change is committed is stored

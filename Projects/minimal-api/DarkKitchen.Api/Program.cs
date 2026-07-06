@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
+using DarkKitchen.Data.Entities;
 using DarkKitchen.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +34,65 @@ app.UseSwaggerUI();
 
 
 app.MapGet("/", () => "Hello World!");
+
+app.MapGet("/seed", () =>
+{
+    return "Seed items here";
+});
+
+app.MapGet("/inventory", () =>
+{
+    return "See the stock here";
+});
+
+app.MapGet("/reset", () =>
+{
+    return "Reset stock here";
+});
+
+app.MapGet("/order", () =>
+{
+    return "You place one order here";
+});
+
+app.MapGet("/order-burst", () =>
+{
+    return "You send a burst of orders here";
+});
+
+
+// Reports
+app.MapGet("/reports/top-products", () =>
+{
+    return "Ordered list of best selling products";
+});
+
+app.MapGet("/reports/worst-products", () =>
+{
+    return "Ordered list of worst selling products";
+});
+
+app.MapGet("/reports/top-customers", () =>
+{
+    return "Ordered list of best selling products";
+});
+
+app.MapGet("/reports/worst-customers", () =>
+{
+    return "Ordered list of worst selling products";
+});
+
+app.MapGet("/reports/fulfillment-rate", () =>
+{
+    return "Ordered list of worst selling products";
+});
+
+
+// Benchmarking
+app.MapGet("/benchmark", () =>
+{
+    return "Test parallel vs sequential burst";
+});
 
 app.Run();
 

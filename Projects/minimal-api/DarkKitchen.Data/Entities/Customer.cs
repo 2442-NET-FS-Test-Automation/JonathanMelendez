@@ -1,0 +1,1 @@
+namespace DarkKitchen.Data.Entities;

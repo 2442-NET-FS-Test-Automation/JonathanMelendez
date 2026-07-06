@@ -12,10 +12,21 @@ using Library.Api.Fulfillment;
 // Builder
 var builder = WebApplication.CreateBuilder(args);
 
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console() // Write to console, and write to a file - starting a new file each day.
+    .WriteTo.File("logs/fulfillment-log-.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog(); // Tell the builder to use Serilog for logging
+
+
 var conn_string = "Server=localhost,1433;Database=LibraryMinimalDB;User Id=sa;Password=mssql65.;TrustServerCertificate=true";
-builder.Services.AddDbContext<LibraryDbContext>(options => options.UseSqlServer(conn_string));
+
+builder.Services.AddDbContext<LibraryDbContext>(options => options.UseSqlServer(conn_string),
+    ServiceLifetime.Scoped, ServiceLifetime.Singleton);
 
 builder.Services.AddDbContextFactory<LibraryDbContext>(options => options.UseSqlServer(conn_string));
+
 
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
 

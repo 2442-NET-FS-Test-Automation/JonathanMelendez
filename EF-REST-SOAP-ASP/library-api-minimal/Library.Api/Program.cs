@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Library.Data;
 using Microsoft.OpenApi;
 using Library.Data.Entities;
+using Serilog;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Library.Api.Fulfillment;
 // Registering things with the builder
 // Configuring things with the app
 // Then the endpoints of the API calls
@@ -11,6 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 var conn_string = "Server=localhost,1433;Database=LibraryMinimalDB;User Id=sa;Password=mssql65.;TrustServerCertificate=true";
 builder.Services.AddDbContext<LibraryDbContext>(options => options.UseSqlServer(conn_string));
+
+builder.Services.AddDbContextFactory<LibraryDbContext>(options => options.UseSqlServer(conn_string));
+
+builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -95,9 +103,57 @@ app.MapGet("/peek/conflict", (IServiceScopeFactory scopes) =>
         secondDb.SaveChanges();
         return Results.Ok("Conflict caught, reloaded and retried");
     }
-    
-    return Results.Ok();
+});
+
+app.MapPost("/inventory/reset", (LibraryDbContext db, ILogger<Program> logger) =>
+{
+    logger.LogInformation("Started seeing database");
+
+    foreach (InventoryItem inv in db.Inventory)
+    {
+        switch (inv.Id)
+        {
+            case 1:
+                inv.CurrentStock = 5;
+                break;
+            case 2:
+                inv.CurrentStock = 3;
+                break;
+            case 3:
+                inv.CurrentStock = 8;
+                break;
+        }
+    }
+    db.SaveChanges();
+
+    logger.LogInformation("Stock reset");
+    return Results.Ok("Stock reset");
 });
 
 
+app.MapPost("/orders", async (
+    OrderPayload orderRequest, 
+    IDbContextFactory<LibraryDbContext> FactoryMethodBinding, 
+    CancellationToken ct,
+    IFulfillmentService fSvc
+) => {
+    await using var db = await FactoryMethodBinding.CreateDbContextAsync(ct);
+
+    var newOrder = new Order
+    {
+        CustomerId = orderRequest.CustomerId,
+        Priority = Priority.Normal,
+        Lines = { new OrderLine { ProductId = orderRequest.ProductId, Quantity = orderRequest.Quantity } }
+    };
+
+    db.Orders.Add(newOrder);
+    await db.SaveChangesAsync(ct);
+
+    FulfillmentResult result = await fSvc.FulfillOneAsync(newOrder.Id, ct);
+
+    return Results.Ok(new {orderId = newOrder.Id, result = result.ToString()});
+});
+
 app.Run();
+Log.CloseAndFlush();
+public record OrderPayload(int ProductId, int Quantity, int CustomerId);

@@ -57,6 +57,11 @@ CREATE TABLE dbo.Book
     CONSTRAINT CK_Book_Copies CHECK (TotalCopies >= AvailableCopies),
     CONSTRAINT FK_Book_Category FOREIGN KEY (CategoryId) REFERENCES dbo.Category (CategoryId)
 );
+-- Add constraint
+ALTER TABLE dbo.Book
+ADD CONSTRAINT CK_Book_Min_AvailableCopies
+CHECK (AvailableCopies >= 0);
+
 
 -- NEW: the M:N bridge between Book and Author. Composite PK, no extra attributes.
 CREATE TABLE dbo.BookAuthor
@@ -135,6 +140,7 @@ INSERT INTO dbo.Loan (BookId, MemberId, LoanDate, DueDate, ReturnDate) VALUES
     (8, 3, '2026-05-25', '2026-06-08', '2026-06-04'), -- Pragmatic Programmer, returned
     (1, 4, '2026-06-10', '2026-06-24', NULL),         -- Clean Code, out to Linus
     (8, 5, '2026-06-12', '2026-06-26', NULL);         -- Pragmatic Programmer, out to Margaret
+
 GO
 
 -- =====   Intermediate DQL   =====
@@ -263,3 +269,134 @@ JOIN dbo.Book b ON b.BookId = l.BookId
 JOIN dbo.Category c ON c.CategoryId = b.CategoryId
 WHERE l.ReturnDate IS NULL
 ORDER BY DaysOverdue;
+
+GO
+
+-- =====   Transactions - TCL   =====
+
+-- All or nothing
+
+-- Flag to abort any transaction when an error surfaces
+SET XACT_ABORT ON; -- mssql specific
+
+BEGIN TRY
+    BEGIN TRANSACTION
+
+    INSERT INTO dbo.Loan(BookId, MemberId, DueDate)
+    VALUES (1, 2, DATEADD(DAY, 14, GETDATE()));
+
+    UPDATE dbo.Book SET AvailableCopies = AvailableCopies - 1 WHERE BookId = 1; 
+
+    COMMIT TRANSACTION
+    PRINT 'Checkout committed'
+END TRY
+BEGIN CATCH
+    -- If were here something was wrong
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
+    PRINT 'Checkout rollback' + ERROR_MESSAGE();
+END CATCH
+
+GO
+
+-- Isolation levels > Mostly managed by the RDBMS BUT
+-- We can change it with
+-- READ UNCOMMITTED > Queries and Statements modified by other transactions that arent commited
+    -- Can accidentaly result in dirty reads and phantom reads on records were other transaction finishes
+    -- At scale is fast because has less locks but still can have bad data
+-- READ COMMITTED   > Prevents dirty reads by requiring that data read by a statement must be commited
+    -- Will ignore uncommitted changes (default)
+-- REPEATEBLE READ  > Places share locks on all data read by transactions and holds them until it ends
+    -- No other transactions can affect the rows till they are realeased
+    -- Other transacctions can still insert new rows that may bleed into your queries
+-- SERIALIZEBLE     > Most restrictive. Places locks in rows that prevent other CRUD transactions 
+    -- within the read range until the transaction ends
+    -- Prevents ALL concurrency anomalies BUT makes it slow as hell and could also make deadlocks, so bad
+
+
+-- VIEWS, INDEXES, TRIGGERS, PROCs, STORE PROCEDURES, etc.
+
+-- VIEWS
+-- Saved queries, not the output just the querie
+
+CREATE OR ALTER VIEW dbo.vw_ActiveLoans 
+AS
+    SELECT m.FirstName + ' ' + m.LastName AS Member, 
+        b.Title, 
+        c.Name as Category, 
+        l.DueDate, 
+        DATEDIFF(DAY, l.DueDate, GETDATE()) AS DaysOverdue
+    FROM dbo.Loan AS l
+    JOIN dbo.Member m ON m.MemberId = l.MemberId
+    JOIN dbo.Book b ON b.BookId = l.BookId
+    JOIN dbo.Category c ON c.CategoryId = b.CategoryId
+    WHERE l.ReturnDate IS NULL;
+
+GO
+
+-- This is not precompiled, is just a saved select the date becomes the one when you call it
+SELECT * FROM dbo.vw_ActiveLoans ORDER BY DaysOverdue;
+
+GO
+
+-- STORE PROCEDURES
+-- A named program in the database, a function
+CREATE OR ALTER PROCEDURE dbo.usp_CheckoutBook
+    -- Arguments / Inputs
+    @BookId INT,
+    @MemberId INT,
+    @Days INT = 14
+AS
+BEGIN
+    SET XACT_ABORT ON;
+    SET NOCOUNT ON;     -- Turns of the '(x rows affected)'
+
+    BEGIN TRY
+        BEGIN TRANSACTION
+            IF (SELECT AvailableCopies FROM dbo.Book WHERE BookId = @BookId) <= 0
+                -- THROW takes 3 numbers
+                    -- Error number > some integer number for the error must be 5000+
+                    -- message      > some string describing wahapen
+                    -- state        > an int between 0-255 describing where it happened
+                THROW 5000, 'No copies available to checkout', 1;
+
+            INSERT INTO dbo.Loan(BookId, MemberId, DueDate)
+            VALUES (@BookId, @MemberId, DATEADD(DAY, @Days, GETDATE()));
+
+            UPDATE dbo.Book SET AvailableCopies = AvailableCopies - 1 WHERE BookId = @BookId; 
+
+        COMMIT TRANSACTION
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+
+GO
+
+EXEC dbo.usp_CheckoutBook @BookId = 3, @MemberId = 3, @Days = 21;
+
+SELECT * FROM dbo.Loan WHERE BookId = 3 AND MemberId = 3;
+
+GO
+
+-- User defined function
+CREATE OR ALTER FUNCTION dbo.fn_DaysOverdue(@dueDate DATE)
+RETURNS INT 
+AS
+BEGIN
+    -- Declaring a scoped variable in the function 
+    DECLARE @days INT = DATEDIFF(DAY, @dueDate, CAST(GETDATE() AS DATE));
+    RETURN CASE WHEN @days > 0 THEN @days ELSE 0 END;
+END;
+
+GO
+
+SELECT Title, DueDate, dbo.fn_DaysOverdue(DueDate) AS DaysOverdue
+FROM dbo.Loan l
+JOIN dbo.Book b ON b.BookId = l.BookId
+WHERE ReturnDate IS NULL
+ORDER BY DaysOverdue DESC;
+
+-- INDEXES
+CREATE INDEX IX_Loan_MemberId ON dbo.Loan(MemberId);

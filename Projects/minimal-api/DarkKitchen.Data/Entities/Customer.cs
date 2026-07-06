@@ -10,7 +10,8 @@ public class Customer
 
     [Required, MaxLength(100)]
     public string Name { get; set; } = default!;
-    [Required]
+    
+    [Required, MaxLength(256)]
     public string Email { get; set; } = default!;
 
     //One customer can have many orders

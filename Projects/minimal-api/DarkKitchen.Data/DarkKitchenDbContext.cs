@@ -17,5 +17,7 @@ public class DarkKitchenDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Ingredient>().Property(i => i.RowVersion).IsRowVersion();
     }
 }

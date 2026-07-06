@@ -7,12 +7,13 @@ using DarkKitchen.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// DB Stuff
 var conn_string = "Server=localhost,1433;Database=mssql_test;User Id=sa;Password=mssql65.;TrustServerCertificate=true";
 builder.Services.AddDbContext<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string),
     ServiceLifetime.Scoped, ServiceLifetime.Singleton);
 
+// Services
 builder.Services.AddDbContextFactory<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string));
-
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
 
 // Logger

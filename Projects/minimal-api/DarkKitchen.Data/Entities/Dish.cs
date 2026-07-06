@@ -8,10 +8,16 @@ namespace DarkKitchen.Data.Entities;
 public class Dish
 {
     public int Id { get; set; }
+
+    [Required, MaxLength(100)]
     public string Name { get; set; } = default!;
+
+    [Required, MaxLength(300)]
     public string Description { get; set; } = default!;
+
     [Precision(10, 2)]
     public decimal Price { get; set; } 
+    
     public List<Ingredient> Ingredients { get; set; } = [];
     public bool Enabled { get; set; } = true;
 }

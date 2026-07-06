@@ -33,8 +33,6 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 
-app.MapGet("/", () => "Hello World!");
-
 app.MapGet("/seed", () =>
 {
     return "Seed items here";

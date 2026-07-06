@@ -7,6 +7,6 @@ namespace DarkKitchen.Data.Entities;
 public class Ingredient
 {
     public int Id { get; set; }
-    public int Name { get; set; } 
-    public int Stock { get; set; } 
+    public string Name { get; set; } = default!;
+    public decimal Stock { get; set; }
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
+using DarkKitchen.Api.Fulfillment;
 using DarkKitchen.Data.Entities;
 using DarkKitchen.Data;
 
@@ -12,7 +13,7 @@ builder.Services.AddDbContext<DarkKitchenDbContext>(options => options.UseSqlSer
 
 builder.Services.AddDbContextFactory<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string));
 
-//builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
+builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
 
 // Logger
 Log.Logger = new LoggerConfiguration()
@@ -33,14 +34,15 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 
+// Inventory stuff
 app.MapGet("/seed", () =>
 {
     return "Seed items here";
 });
 
-app.MapGet("/inventory", () =>
+app.MapGet("/inventory", (DarkKitchenDbContext db) =>
 {
-    return "See the stock here";
+    return ;
 });
 
 app.MapGet("/reset", () =>
@@ -48,12 +50,14 @@ app.MapGet("/reset", () =>
     return "Reset stock here";
 });
 
-app.MapGet("/order", () =>
+
+// Orders
+app.MapGet("/orders/single", () =>
 {
     return "You place one order here";
 });
 
-app.MapGet("/order-burst", () =>
+app.MapGet("/orders/burst", () =>
 {
     return "You send a burst of orders here";
 });
@@ -72,12 +76,12 @@ app.MapGet("/reports/worst-products", () =>
 
 app.MapGet("/reports/top-customers", () =>
 {
-    return "Ordered list of best selling products";
+    return "Ordered list of most profitable customers";
 });
 
 app.MapGet("/reports/worst-customers", () =>
 {
-    return "Ordered list of worst selling products";
+    return "Ordered list of worst profitable customers";
 });
 
 app.MapGet("/reports/fulfillment-rate", () =>

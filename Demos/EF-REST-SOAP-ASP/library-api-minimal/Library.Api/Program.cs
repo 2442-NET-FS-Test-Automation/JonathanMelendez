@@ -20,20 +20,20 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog(); // Tell the builder to use Serilog for logging
 
 
+// DbContext
 var conn_string = "Server=localhost,1433;Database=LibraryMinimalDB;User Id=sa;Password=mssql65.;TrustServerCertificate=true";
-
 builder.Services.AddDbContext<LibraryDbContext>(options => options.UseSqlServer(conn_string),
     ServiceLifetime.Scoped, ServiceLifetime.Singleton);
-
 builder.Services.AddDbContextFactory<LibraryDbContext>(options => options.UseSqlServer(conn_string));
 
-
+// Services
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
+builder.Services.AddScoped<ISeeder, Seeder>();
 
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// App
 var app = builder.Build();
 
 // Swagger stuff
@@ -163,6 +163,47 @@ app.MapPost("/orders", async (
     FulfillmentResult result = await fSvc.FulfillOneAsync(newOrder.Id, ct);
 
     return Results.Ok(new {orderId = newOrder.Id, result = result.ToString()});
+});
+
+app.MapPost("/orders/burst", (
+    int n, 
+    bool expedited, 
+    ISeeder seeder, 
+    IServiceScopeFactory scopes,
+    IHostApplicationLifetime lifetime
+) => {
+    var ids = seeder.SeedOrders(n, expedited);
+
+    var appStoping = lifetime.ApplicationStopping;
+
+    _ = Task.Run( async () =>
+    {
+        try
+        {
+            using var scope = scopes.CreateScope();
+            var service = scope.ServiceProvider.GetRequiredService<FulfillmentService>();
+            await service.FulfillBurstAsync(ids, appStoping);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Burst fulfillment failed");
+        }
+    }, appStoping);
+});
+
+app.MapGet("/verify/no-oversell", (LibraryDbContext db) =>
+{
+    var rows = db.Inventory.Include(i => i.Product).ToList();
+    var negative = rows.Where(i => i.CurrentStock < 0).ToList();
+    var fulfilled = db.FulfillmentEvents.Count(e => e.Type == "Fulfilled");
+    var backordered = db.FulfillmentEvents.Count(e => e.Type == "Backordered");
+
+    return new { 
+        anyNegative = negative.Any(),
+        onHand = rows.Select(i => new {i.ProductId, i.CurrentStock}),
+        unitsFulfilled = fulfilled,
+        unitsBackordered = backordered 
+    };
 });
 
 app.Run();

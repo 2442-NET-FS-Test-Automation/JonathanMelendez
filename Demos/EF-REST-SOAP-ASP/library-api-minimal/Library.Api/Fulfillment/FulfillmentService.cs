@@ -8,6 +8,7 @@ namespace Library.Api.Fulfillment;
 public interface IFulfillmentService
 {
     public Task<FulfillmentResult> FulfillOneAsync(int orderId, CancellationToken ct);
+    public Task<BurstResult> FulfillBurstAsync(IEnumerable<int> orderIds, CancellationToken ct);
 }
 
 public enum FulfillmentResult { Fulfilled, Backordered }
@@ -77,14 +78,14 @@ public class FulfillmentService : IFulfillmentService
         CancellationToken ct
     )
     {
-        for (int attempt = 0; ; attempt++)
+        while (true)
         {
             try
             {
                 await db.SaveChangesAsync(ct);
                 return true;
             }
-            catch (DbUpdateConcurrencyException e) when (attempt < 3)
+            catch (DbUpdateConcurrencyException e)
             {
                 foreach (var entry in e.Entries)
                 {
@@ -105,5 +106,17 @@ public class FulfillmentService : IFulfillmentService
                 }
             }
         }
+    }
+
+    public async Task<BurstResult> FulfillBurstAsync(IEnumerable<int> orderIds, CancellationToken ct)
+    {
+        var tasks = orderIds.Select(id => FulfillOneAsync(id, ct));
+
+        var results = await Task.WhenAll(tasks);
+
+        return new BurstResult(
+            Fulfilled: results.Count(r => r == FulfillmentResult.Fulfilled),
+            Backordered: results.Count(r => r == FulfillmentResult.Backordered)
+        );
     }
 }

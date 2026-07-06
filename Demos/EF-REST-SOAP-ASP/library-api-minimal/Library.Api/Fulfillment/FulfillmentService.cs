@@ -18,9 +18,11 @@ public record BurstResult(int Fulfilled, int Backordered);
 public class FulfillmentService : IFulfillmentService
 {
     private readonly IDbContextFactory<LibraryDbContext> _factory;
-    public FulfillmentService(IDbContextFactory<LibraryDbContext> factory)
+    private readonly BurstPlanner _planner;
+    public FulfillmentService(IDbContextFactory<LibraryDbContext> factory, BurstPlanner planner)
     {
         _factory = factory;
+        _planner = planner;
     }
     public async Task<FulfillmentResult> FulfillOneAsync(int orderId, CancellationToken ct)
     {
@@ -28,7 +30,7 @@ public class FulfillmentService : IFulfillmentService
 
         var order = await db.Orders.Include(o => o.Lines).FirstAsync(o => o.Id == orderId, ct);
 
-        var requested = order.Lines.ToDictionary(l => l.ProductId, l => l.OrderId);
+        var requested = order.Lines.ToDictionary(l => l.ProductId, l => l.Quantity);
 
         bool canFulfill = true;
 
@@ -65,7 +67,7 @@ public class FulfillmentService : IFulfillmentService
             Order staleOrder = await db.Orders.FirstAsync( o => o.Id == orderId, ct);
 
             staleOrder.Status = Status.Backordered;
-            Log.Warning("Backordered {orderId} after 3 retries", orderId);
+            Log.Warning("Backordered {orderId}", orderId);
             return FulfillmentResult.Backordered;
         }
 
@@ -110,7 +112,17 @@ public class FulfillmentService : IFulfillmentService
 
     public async Task<BurstResult> FulfillBurstAsync(IEnumerable<int> orderIds, CancellationToken ct)
     {
-        var tasks = orderIds.Select(id => FulfillOneAsync(id, ct));
+        List<int> idList = orderIds.ToList();
+
+        List<Order> orders;
+        await using (var db = await _factory.CreateDbContextAsync(ct))
+        {
+            orders = await db.Orders.Where(o => idList.Contains(o.Id)).ToListAsync(ct);
+        }
+
+        var planned = _planner.OrderByPriority(orders);
+        
+        var tasks = planned.Select(id => FulfillOneAsync(id, ct));
 
         var results = await Task.WhenAll(tasks);
 

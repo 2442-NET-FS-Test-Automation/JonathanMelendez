@@ -1,10 +1,14 @@
 using Microsoft.EntityFrameworkCore;
-using Library.Data;
 using Microsoft.OpenApi;
-using Library.Data.Entities;
 using Serilog;
 using Microsoft.EntityFrameworkCore.Metadata;
+
+
+using Library.Data;
+using Library.Data.Entities;
 using Library.Api.Fulfillment;
+using System.Diagnostics;
+
 // Registering things with the builder
 // Configuring things with the app
 // Then the endpoints of the API calls
@@ -29,6 +33,7 @@ builder.Services.AddDbContextFactory<LibraryDbContext>(options => options.UseSql
 // Services
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
 builder.Services.AddScoped<ISeeder, Seeder>();
+builder.Services.AddScoped<BurstPlanner>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -181,7 +186,7 @@ app.MapPost("/orders/burst", (
         try
         {
             using var scope = scopes.CreateScope();
-            var service = scope.ServiceProvider.GetRequiredService<FulfillmentService>();
+            var service = scope.ServiceProvider.GetRequiredService<IFulfillmentService>();
             await service.FulfillBurstAsync(ids, appStoping);
         }
         catch (Exception e)
@@ -204,6 +209,54 @@ app.MapGet("/verify/no-oversell", (LibraryDbContext db) =>
         unitsFulfilled = fulfilled,
         unitsBackordered = backordered 
     };
+});
+
+
+app.MapGet("/reports/by-completion", (LibraryDbContext db) =>
+{
+    return db.Orders
+        .Where(o => o.Status == Status.Fulfilled)
+        .OrderBy(o => o.CompletedUtc)
+        .Select(o => new {o.Id, o.Priority, o.CompletedUtc})
+        .ToList();
+});
+
+app.MapGet("/benchmark", async (int n, IFulfillmentService fs, ISeeder seeder, CancellationToken ct) =>
+{
+    var ids1 = seeder.ResetAndCreateOrders(n);
+    
+    // Sequential
+    var sw1 = Stopwatch.StartNew();
+
+    foreach (var id in ids1)
+    {
+        await fs.FulfillOneAsync(id, ct);
+    }
+    sw1.Stop();
+
+    // Concurrent
+    var ids2 = seeder.ResetAndCreateOrders(n);
+
+    var sw2 = Stopwatch.StartNew();
+    await fs.FulfillBurstAsync(ids2, ct);
+    sw2.Stop();
+
+    return new {
+        sequentialMs = sw1.ElapsedMilliseconds,
+        concurrentMs = sw2.ElapsedMilliseconds
+    };
+
+});
+
+app.MapGet("/reports/top-products", (LibraryDbContext db) =>
+{
+    return db.FulfillmentEvents
+        .Where(e => e.Type == "Fulfilled")
+        .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
+        .GroupBy(l => l.ProductId)
+        .Select(g => new { ProductId = g.Key, Units = g.Sum(l => l.Quantity) })
+        .OrderByDescending(x => x.Units)
+        .ToList();
 });
 
 app.Run();

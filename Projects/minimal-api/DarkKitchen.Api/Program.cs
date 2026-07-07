@@ -8,7 +8,7 @@ using DarkKitchen.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 // DB Stuff
-var conn_string = "Server=localhost,1433;Database=mssql_test;User Id=sa;Password=mssql65.;TrustServerCertificate=true";
+var conn_string = "Server=localhost,1433;Database=DarkKitchenDB;User Id=sa;Password=mssql65.;TrustServerCertificate=true";
 builder.Services.AddDbContext<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string),
     ServiceLifetime.Scoped, ServiceLifetime.Singleton);
 
@@ -41,10 +41,17 @@ app.MapGet("/seed", () =>
     return "Seed items here";
 });
 
-app.MapGet("/inventory", (DarkKitchenDbContext db) =>
-{
-    return ;
-});
+app.MapGet("/dish-menu", (DarkKitchenDbContext db) => db.Dishes.ToList());
+
+app.MapGet("/inventory", (DarkKitchenDbContext db) => db.Ingredients
+        .Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.GetAbbreviation()}" })
+        .ToList());
+
+app.MapGet("/inventory/out-of-stock", (DarkKitchenDbContext db) => db.Ingredients
+        .Select(i => new { i.Name, i.Stock })
+        .Where(i => i.Stock <= 0.5m)
+        .OrderBy(i => i.Stock)
+        .ToList());
 
 app.MapGet("/reset", () =>
 {

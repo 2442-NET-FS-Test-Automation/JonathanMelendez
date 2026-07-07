@@ -1,18 +1,14 @@
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
-
 
 namespace DarkKitchen.Data.Entities;
 
 public class DishIngredient
 {
     public int Id { get; set; }
-
-    [Required]
     public int DishId { get; set; }
-
-    [Required]
+    public Dish Dish { get; set; } = default!;
     public int IngredientId { get; set; }
+    public Ingredient Ingredient { get; set; } = default!; 
 
     [Precision(10,3)]
     public decimal Quantity { get; set; }

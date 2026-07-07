@@ -17,7 +17,9 @@ public class Dish
 
     [Precision(10, 2)]
     public decimal Price { get; set; } 
+
+    public string OriginCountry { get; set; } = default!;
     
-    public List<Ingredient> Ingredients { get; set; } = [];
+    public List<DishIngredient> Ingredients { get; set; } = [];
     public bool Enabled { get; set; } = true;
 }

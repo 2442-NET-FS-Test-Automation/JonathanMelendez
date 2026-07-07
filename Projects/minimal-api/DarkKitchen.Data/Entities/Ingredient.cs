@@ -11,5 +11,6 @@ public class Ingredient
     public string Name { get; set; } = default!;
     [Precision(10, 2)]
     public decimal Stock { get; set; }
+    public Units Unit { get; set; }
     public byte[] RowVersion { get; set; } = default!;
 }

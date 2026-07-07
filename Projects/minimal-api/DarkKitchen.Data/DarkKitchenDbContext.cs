@@ -21,7 +21,7 @@ public class DarkKitchenDbContext : DbContext
 
         modelBuilder.Entity<Ingredient>().Property(i => i.RowVersion).IsRowVersion();
 
-        // Seed initial customers
+        // Seed Customers
         modelBuilder.Entity<Customer>().HasData(
             new Customer {Id = 1, Name = "Jonathan", Email = "jonathan@example.com"},
             new Customer {Id = 2, Name = "Paula", Email = "paula@example.com"},
@@ -129,6 +129,20 @@ public class DarkKitchenDbContext : DbContext
             new DishIngredient {Id = 52, DishId = 10, IngredientId = 9, Quantity = 0.5m},
             new DishIngredient {Id = 53, DishId = 10, IngredientId = 6, Quantity = 0.01m},
             new DishIngredient {Id = 54, DishId = 10, IngredientId = 3, Quantity = 0.01m}
+        );
+    
+        // Seed Orders
+        modelBuilder.Entity<Order>().HasData(
+            new Order {Id = 1, CustomerId = 3, Priority = OrderPriority.Normal, Status = OrderStatus.Fulfilled, CompletedUtc = new DateTime(2026, 7, 7, 18, 15, 36, DateTimeKind.Utc) },
+            new Order {Id = 2, CustomerId = 2, Priority = OrderPriority.Normal, Status = OrderStatus.Backordered, CompletedUtc = new DateTime(2026, 7, 7, 18, 21, 52, DateTimeKind.Utc)},
+            new Order {Id = 3, CustomerId = 5, Priority = OrderPriority.Urgent, Status = OrderStatus.Fulfilled, CompletedUtc = new DateTime(2026, 7, 7, 18, 59, 11, DateTimeKind.Utc)}
+        );
+        modelBuilder.Entity<OrderLine>().HasData(
+            new OrderLine {Id = 1, OrderId = 1, DishId = 5, Quantity = 2},
+            new OrderLine {Id = 2, OrderId = 2, DishId = 6, Quantity = 1},
+            new OrderLine {Id = 3, OrderId = 2, DishId = 1, Quantity = 1},
+            new OrderLine {Id = 4, OrderId = 3, DishId = 4, Quantity = 1},
+            new OrderLine {Id = 5, OrderId = 3, DishId = 8, Quantity = 3}
         );
     }
 }

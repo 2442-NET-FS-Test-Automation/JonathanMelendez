@@ -71,10 +71,8 @@ app.MapPost("/inventory/reset", (DarkKitchenDbContext db, ILogger<Program> logge
 
 
 // Orders
-app.MapGet("/orders/info", () =>
-{
-    return "Retrieve info about an specific order";
-});
+app.MapGet("/orders/{orderId:int}", (int orderId, DarkKitchenDbContext db) =>
+    db.Orders.Include(o => o.Lines).Where(o => o.Id == orderId));
 
 app.MapPost("/orders/single", () =>
 {

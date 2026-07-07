@@ -3,6 +3,7 @@ using Serilog;
 
 using DarkKitchen.Api.Fulfillment;
 using DarkKitchen.Data.Entities;
+using DarkKitchen.Data.Defaults;
 using DarkKitchen.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,15 +37,15 @@ app.UseSwaggerUI();
 
 
 // Inventory stuff
-app.MapGet("/seed", () =>
-{
-    return "Seed items here";
-});
-
 app.MapGet("/dish-menu", (DarkKitchenDbContext db) => db.Dishes.ToList());
 
 app.MapGet("/inventory", (DarkKitchenDbContext db) => db.Ingredients
         .Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.GetAbbreviation()}" })
+        .ToList());
+
+app.MapGet("/inventory/by-stock", (DarkKitchenDbContext db) => db.Ingredients
+        .Select(i => new { i.Name, i.Stock, i.Unit })
+        .OrderByDescending(i => i.Stock)
         .ToList());
 
 app.MapGet("/inventory/out-of-stock", (DarkKitchenDbContext db) => db.Ingredients
@@ -53,19 +54,34 @@ app.MapGet("/inventory/out-of-stock", (DarkKitchenDbContext db) => db.Ingredient
         .OrderBy(i => i.Stock)
         .ToList());
 
-app.MapGet("/reset", () =>
+app.MapPost("/inventory/reset", (DarkKitchenDbContext db, ILogger<Program> logger) =>
 {
-    return "Reset stock here";
+    foreach(var ingredient in db.Ingredients)
+    {
+        if (IngredientDefaults.InitialStocks.TryGetValue(ingredient.Id, out decimal initialStock))
+        {
+            ingredient.Stock = initialStock;
+            Log.Information("Reset ingredient {id} to {stock} stock", ingredient.Id, initialStock);
+        }
+    }
+    Log.Information("Applying reset changes...");
+    db.SaveChanges();
+    return Results.Ok("Stock reset");
 });
 
 
 // Orders
-app.MapGet("/orders/single", () =>
+app.MapGet("/orders/info", () =>
+{
+    return "Retrieve info about an specific order";
+});
+
+app.MapPost("/orders/single", () =>
 {
     return "You place one order here";
 });
 
-app.MapGet("/orders/burst", () =>
+app.MapPost("/orders/burst", () =>
 {
     return "You send a burst of orders here";
 });
@@ -99,7 +115,7 @@ app.MapGet("/reports/fulfillment-rate", () =>
 
 
 // Benchmarking
-app.MapGet("/benchmark", () =>
+app.MapPost("/benchmark", () =>
 {
     return "Test parallel vs sequential burst";
 });

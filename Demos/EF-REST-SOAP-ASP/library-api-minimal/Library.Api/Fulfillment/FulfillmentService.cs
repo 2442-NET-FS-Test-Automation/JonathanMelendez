@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Library.Data;
 using Library.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ namespace Library.Api.Fulfillment;
 
 public interface IFulfillmentService
 {
+    public int ResolveProductId(string sku);
     public Task<FulfillmentResult> FulfillOneAsync(int orderId, CancellationToken ct);
     public Task<BurstResult> FulfillBurstAsync(IEnumerable<int> orderIds, CancellationToken ct);
 }
@@ -19,10 +21,21 @@ public class FulfillmentService : IFulfillmentService
 {
     private readonly IDbContextFactory<LibraryDbContext> _factory;
     private readonly BurstPlanner _planner;
+    private readonly ConcurrentDictionary<string, int> _skuToProduct = [];
     public FulfillmentService(IDbContextFactory<LibraryDbContext> factory, BurstPlanner planner)
     {
         _factory = factory;
         _planner = planner;
+
+        using var db = _factory.CreateDbContext();
+        _skuToProduct = new ConcurrentDictionary<string, int>(
+            db.Products.ToDictionary(p => p.Sku, p => p.Id)
+        );
+    }
+    public int ResolveProductId(string sku) 
+    {
+        try { return _skuToProduct[sku]; }
+        catch (KeyNotFoundException) { throw new UnknownSkuException(sku); }
     }
     public async Task<FulfillmentResult> FulfillOneAsync(int orderId, CancellationToken ct)
     {
@@ -89,9 +102,10 @@ public class FulfillmentService : IFulfillmentService
             }
             catch (DbUpdateConcurrencyException e)
             {
+                Log.Warning("Attempting retry");
                 foreach (var entry in e.Entries)
                 {
-                    var current = await entry.GetDatabaseValuesAsync();
+                    var current = await entry.GetDatabaseValuesAsync(ct);
                     
                     if (current is null) return false;
 

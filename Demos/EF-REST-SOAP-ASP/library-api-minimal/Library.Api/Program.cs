@@ -34,6 +34,8 @@ builder.Services.AddDbContextFactory<LibraryDbContext>(options => options.UseSql
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
 builder.Services.AddScoped<ISeeder, Seeder>();
 builder.Services.AddScoped<BurstPlanner>();
+builder.Services.AddScoped<OrderFactory>();
+
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -259,6 +261,53 @@ app.MapGet("/reports/top-products", (LibraryDbContext db) =>
         .ToList();
 });
 
+app.MapGet("/reports/rank-of/{units:int}", (int units, LibraryDbContext db) =>
+{   
+    // Find product ranking that sold x units 
+    var unitsDesc = db.FulfillmentEvents
+        .Where(e => e.Type == "Fulfilled")
+        .Join(db.OrderLines, e => e.OrderId, l => l. OrderId, (e, l) => l)
+        .GroupBy(l => l.ProductId)
+        .Select(g => g.Sum(l => l.Quantity))
+        .OrderByDescending(u => u)
+        .ToArray(); 
+
+
+    // sorted DESC => using Binary Search to find the index of a specific quantity sold
+    // 1000, 400, 330, 34
+    // Our BinarySearch needs a comparer - for something like an int or a char this is easy 
+    // if you want to do this with custom classes - you need to override CompareTo like we do ToString
+    var index = Array.BinarySearch(unitsDesc, units, Comparer<int>.Create((a, b) => b.CompareTo(a)));
+    return new { units, rank = index >= 0 ? index + 1 : -1}; // If BinarySearch doesn't find a thing - it returns some bitwise 
+    // complement or something - we collapse it to -1 
+});
+
+app.MapPost("/ordersFactory", async (
+    OrderRequest req, 
+    OrderFactory factory, 
+    IDbContextFactory<LibraryDbContext> dbf, 
+    CancellationToken ct
+) => {
+    try
+    {
+        Order newOrder = factory.CreateOrder(req.kind, req.CustomerId, 
+            req.lines.Select(l => (l.sku, l.Qty)));
+
+        await using var db = await dbf.CreateDbContextAsync(ct);
+
+        db.Orders.Add(newOrder);
+        await db.SaveChangesAsync(ct);
+        return Results.Created($"/orders/{newOrder.Id}", new {newOrder.Id});
+    }
+    catch (UnknownSkuException e)
+    {
+        Log.Warning("Rejected order: Unknown SKU: {sku}", e.Sku);
+        return Results.BadRequest(new {error = e.Message, sku = e.Sku});
+    }
+});
+
 app.Run();
 Log.CloseAndFlush();
 public record OrderPayload(int ProductId, int Quantity, int CustomerId);
+public record OrderLineRequest(string sku, int Qty);
+public record OrderRequest(string kind, int CustomerId, List<OrderLineRequest> lines);

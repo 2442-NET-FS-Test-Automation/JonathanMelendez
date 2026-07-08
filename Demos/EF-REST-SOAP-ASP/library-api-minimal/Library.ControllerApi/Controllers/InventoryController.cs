@@ -1,50 +1,51 @@
-using Library.Data;
-using Library.Data.DTOs;
+using AutoMapper;
+using Library.ControllerApi.DTOs;
+using Library.ControllerApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/[controller]")]
 
-public class InventoryController(IInventoryRepository repo)
+public class InventoryController(IInventoryService service, IMapper mapper)
     : ControllerBase
 {
-    private readonly IInventoryRepository _repo = repo;
+    private readonly IInventoryService _service = service;
+    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
-    public async Task<ActionResult<EntireInventoryDTO>> Get()
+    public async Task<ActionResult<IEnumerable<InventoryDTO>>> Get()
     {
         // Infinite loop when serializing to JSON
         // return Ok(await _repo.GetAllAsync());
 
-        var items = await _repo.GetAllAsync();
-        EntireInventoryDTO response = new();
-
-        foreach (var item in items)
-        {
-            response.EntireInventory.Add(new InventoryReturnDTO
-            {
-               Name = item.Product.Name,
-               Sku = item.Product.Sku,
-               CurrentStock = item.CurrentStock
-            });
-        }
-
-        return Ok(response);
+        var mappedItems = _mapper.Map<List<InventoryDTO>>(await _service.GetAllAsync());
+        return Ok(mappedItems);
     }
-    [HttpGet("[sku]")]
-    public async Task<ActionResult<InventoryReturnDTO>> GetBySku(string sku)
+    [HttpGet("{sku}")]
+    public async Task<ActionResult<InventoryDTO>> GetBySku(string sku)
     {
-        var item = await _repo.GetInventoryItemBySkuAsync(sku);
+        var item = await _service.GetBySkuAsync(sku);
         
         if (item is null) return NotFound();
         
-        var response = new InventoryReturnDTO
-        {
-            Name = item.Product.Name,
-            Sku = item.Product.Sku,
-            CurrentStock = item.CurrentStock
-        };
-
+        var response = _mapper.Map<InventoryDTO>(item);
         return Ok(response);
+    }
+    [HttpPost]
+    public async Task<ActionResult<InventoryDTO>> Create(InventoryDTO newInv)
+    {
+        var created = await _service.AddAsync(newInv);
+        var response = _mapper.Map<InventoryDTO>(created);
+        return CreatedAtAction(nameof(GetBySku), new {sku = response.Sku}, response);
+    }
+    [HttpDelete("{sku}")]
+    public async Task<ActionResult> Delete(string sku)
+    {
+        if (await _service.RemoveAsync(sku))
+        {
+            return NoContent();
+        }
+
+        return NotFound();
     }
 }

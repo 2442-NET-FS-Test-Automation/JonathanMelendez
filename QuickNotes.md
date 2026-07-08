@@ -252,3 +252,82 @@ O(log(n))   > Logaritmic
 ## Trees and graphs
 A tree is a node with leaves, no cycles, somewhat a hierarchy
 A graph can have cycles multiple connectionss
+
+
+# APIs
+## REST-ful Principles (more like guidelines)
+- Client - Server
+
+Client and server separation marking roles
+- Stateless
+
+Each request is self-contained
+- Cachable
+
+The client should be able (optionally) to store response data
+- Uniform interface
+
+It should have consistency with its routing URI, URL
+- Layered System
+
+The api is hosted behind some layers so, its rare that the request hits the server directly
+- Code on Demand*
+
+Should be able to return programs for the client to run (deprecated, huge flag on security)
+
+## HTTP
+Request -> Response lifecycle
+### Request
+- Method/Verb
+
+GET. 
+Safe and idempotent
+
+POST. 
+Not safe nor idempotent
+
+DELETE. 
+Idempotent
+
+PATCH (Modify). 
+Not safe nor idempotent
+
+PUT (Replace).
+Idempotent
+
+- URI
+
+The actual location of the resource
+- Headers
+
+Optional metadata
+- Body
+
+For requests that give input, for example a POST
+
+### Response
+- Status Code
+
+1XX - info
+
+2XX - oki dokies
+
+3XX - redirections
+
+4XX - Client Error
+
+5XX - Server error
+- Headers
+
+Optional metadata
+- Body
+
+Usually a JSON serialized object
+
+## URL/URI Conventions
+Resources (Entities/Tables) are plural nouns
+
+Relationships nest
+
+## Kestrel
+Kestrel is the server that runs our api. Goes through the middleware pipeline

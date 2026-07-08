@@ -48,6 +48,14 @@ app.MapGet("/inventory", (DarkKitchenDbContext db) => db.Ingredients
         .Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.GetAbbreviation()}" })
         .ToList());
 
+app.MapGet("/inventory/search/{id:int}", (int id, DarkKitchenDbContext db) => db.Ingredients
+        .Where( i => i.Id == id)
+        .Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.ToString()}" }));
+
+app.MapGet("/inventory/search/{name}", (string name, DarkKitchenDbContext db) => db.Ingredients
+        .Where( i => i.Name.ToLower().Contains(name.ToLower()))
+        .Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.ToString()}" }));
+
 app.MapGet("/inventory/by-stock", (DarkKitchenDbContext db) => db.Ingredients
         .Select(i => new { i.Name, i.Stock, i.Unit })
         .OrderByDescending(i => i.Stock)

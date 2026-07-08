@@ -1,3 +1,5 @@
+using DarkKitchen.Data;
+
 namespace DarkKitchen.Api.Fulfillment;
 
 public interface IFulfillmentService
@@ -6,7 +8,6 @@ public interface IFulfillmentService
     public Task<BurstResult> FulfillBurstAsync(IEnumerable<int> orderIds, CancellationToken ct);
 }
 
-public enum FulfillmentResult { Fulfilled, Backordered } 
 public record BurstResult(int Fulfilled, int Backordered);
 public class FulfillmentService : IFulfillmentService
 {

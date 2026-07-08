@@ -5,6 +5,7 @@ using DarkKitchen.Api.Fulfillment;
 using DarkKitchen.Data.Entities;
 using DarkKitchen.Data.Defaults;
 using DarkKitchen.Data;
+using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,10 +36,14 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-
-// Inventory stuff
+// dih menu
 app.MapGet("/dish-menu", (DarkKitchenDbContext db) => db.Dishes.ToList());
 
+app.MapGet("/dish-menu/search/{name}", (string name, DarkKitchenDbContext db) => 
+    db.Dishes.Where(d => d.Name.ToLower().Contains(name.ToLower())));
+
+
+// Inventory stuff
 app.MapGet("/inventory", (DarkKitchenDbContext db) => db.Ingredients
         .Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.GetAbbreviation()}" })
         .ToList());
@@ -72,7 +77,11 @@ app.MapPost("/inventory/reset", (DarkKitchenDbContext db, ILogger<Program> logge
 
 // Orders
 app.MapGet("/orders/{orderId:int}", (int orderId, DarkKitchenDbContext db) =>
-    db.Orders.Include(o => o.Lines).Where(o => o.Id == orderId));
+    db.Orders
+        .Include(o => o.Lines)
+        .ThenInclude(l => l.Dish)
+        .Where(o => o.Id == orderId)
+        .ToList());
 
 app.MapPost("/orders/single", () =>
 {
@@ -86,34 +95,52 @@ app.MapPost("/orders/burst", () =>
 
 
 // Reports
-app.MapGet("/reports/top-products", () =>
-{
-    return "Ordered list of best selling products";
-});
+app.MapGet("/reports/top-products", (DarkKitchenDbContext db) =>
+    db.FulfillmentEvents
+        .Where(f => f.Result == FulfillmentResult.Fulfilled)
+        .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
+        .GroupBy(l => l.DishId)
+        .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
+        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {g.Units, d.Name})
+        .OrderByDescending(x => x.Units)
+        .Take(3)
+        .ToList());
 
-app.MapGet("/reports/worst-products", () =>
-{
-    return "Ordered list of worst selling products";
-});
+app.MapGet("/reports/worst-products", (DarkKitchenDbContext db) =>
+    db.FulfillmentEvents
+        .Where(f => f.Result == FulfillmentResult.Fulfilled)
+        .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
+        .GroupBy(l => l.DishId)
+        .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
+        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {g.Units, d.Name})
+        .OrderBy(x => x.Units)
+        .Take(3)
+        .ToList());
 
-app.MapGet("/reports/top-customers", () =>
+app.MapGet("/reports/top-customers", (DarkKitchenDbContext db) =>
 {
     return "Ordered list of most profitable customers";
 });
 
-app.MapGet("/reports/worst-customers", () =>
+app.MapGet("/reports/worst-customers", (DarkKitchenDbContext db) =>
 {
     return "Ordered list of worst profitable customers";
 });
 
-app.MapGet("/reports/fulfillment-rate", () =>
+app.MapGet("/reports/fulfillment-rate", (DarkKitchenDbContext db) =>
+    db.FulfillmentEvents
+    .GroupBy(g => g.Result)
+    .Select(g => new { Result = g.Key.ToString(), Quantity = g.Count()})
+    .ToList());
+
+
+// Benchmarking and tests
+app.MapPost("/benchmark", () =>
 {
-    return "Ordered list of worst selling products";
+    return "Test parallel vs sequential burst";
 });
 
-
-// Benchmarking
-app.MapPost("/benchmark", () =>
+app.MapGet("/verify/no-oversell", () =>
 {
     return "Test parallel vs sequential burst";
 });

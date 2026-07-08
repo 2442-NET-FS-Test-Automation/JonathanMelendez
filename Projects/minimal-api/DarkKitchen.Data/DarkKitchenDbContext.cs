@@ -139,9 +139,9 @@ public class DarkKitchenDbContext : DbContext
     
         // Seed Orders
         modelBuilder.Entity<Order>().HasData(
-            new Order {Id = 1, CustomerId = 3, Priority = OrderPriority.Normal, Status = OrderStatus.Fulfilled},
-            new Order {Id = 2, CustomerId = 2, Priority = OrderPriority.Normal, Status = OrderStatus.Backordered},
-            new Order {Id = 3, CustomerId = 5, Priority = OrderPriority.Urgent, Status = OrderStatus.Fulfilled}
+            new Order {Id = 1, CustomerId = 3, Priority = OrderPriority.Normal, Status = OrderStatus.Fulfilled, CompletedUtc = new DateTime(2026, 07, 07, 20, 15, 07, DateTimeKind.Utc)},
+            new Order {Id = 2, CustomerId = 2, Priority = OrderPriority.Normal, Status = OrderStatus.Backordered, CompletedUtc = new DateTime(2026, 07, 07, 20, 33, 21, DateTimeKind.Utc)},
+            new Order {Id = 3, CustomerId = 5, Priority = OrderPriority.Urgent, Status = OrderStatus.Fulfilled, CompletedUtc = new DateTime(2026, 07, 07, 21, 11, 35, DateTimeKind.Utc)}
         );
         modelBuilder.Entity<OrderLine>().HasData(
             new OrderLine {Id = 1, OrderId = 1, DishId = 5, Quantity = 2},
@@ -149,6 +149,13 @@ public class DarkKitchenDbContext : DbContext
             new OrderLine {Id = 3, OrderId = 2, DishId = 1, Quantity = 1},
             new OrderLine {Id = 4, OrderId = 3, DishId = 4, Quantity = 1},
             new OrderLine {Id = 5, OrderId = 3, DishId = 8, Quantity = 3}
+        );
+    
+        // Seed FulfillmentEvents
+        modelBuilder.Entity<FulfillmentEvent>().HasData(
+            new FulfillmentEvent {Id = 1, OrderId = 1, Result = FulfillmentResult.Fulfilled, FulfilledAtUtc = new DateTime(2026, 07, 07, 20, 15, 11, DateTimeKind.Utc)},
+            new FulfillmentEvent {Id = 2, OrderId = 2, Result = FulfillmentResult.Backordered, FulfilledAtUtc = new DateTime(2026, 07, 07, 20, 33, 25, DateTimeKind.Utc)},
+            new FulfillmentEvent {Id = 3, OrderId = 3, Result = FulfillmentResult.Fulfilled, FulfilledAtUtc = new DateTime(2026, 07, 07, 21, 11, 57, DateTimeKind.Utc)}
         );
     }
 }

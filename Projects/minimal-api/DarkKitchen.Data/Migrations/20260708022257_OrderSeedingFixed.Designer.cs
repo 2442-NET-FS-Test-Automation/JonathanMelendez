@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DarkKitchen.Data.Migrations
 {
     [DbContext(typeof(DarkKitchenDbContext))]
-    [Migration("20260707191115_InitialSeeding")]
-    partial class InitialSeeding
+    [Migration("20260708022257_OrderSeedingFixed")]
+    partial class OrderSeedingFixed
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -189,7 +189,7 @@ namespace DarkKitchen.Data.Migrations
                         new
                         {
                             Id = 9,
-                            Description = "",
+                            Description = "Classic Middle Eastern dish. It features crispy, toasted pita bread combined with warm ingredients and creamy sauces.",
                             Enabled = true,
                             Name = "Fatteh",
                             OriginCountry = "Egypt",
@@ -622,7 +622,9 @@ namespace DarkKitchen.Data.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("FulfilledAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("OrderId")
                         .HasColumnType("int");
@@ -799,7 +801,9 @@ namespace DarkKitchen.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
@@ -815,6 +819,32 @@ namespace DarkKitchen.Data.Migrations
                     b.HasIndex("CustomerId");
 
                     b.ToTable("Orders");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CustomerId = 3,
+                            Priority = 0,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CustomerId = 2,
+                            Priority = 0,
+                            Status = 2
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CustomerId = 5,
+                            Priority = 1,
+                            Status = 1
+                        });
                 });
 
             modelBuilder.Entity("DarkKitchen.Data.Entities.OrderLine", b =>
@@ -836,9 +866,48 @@ namespace DarkKitchen.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DishId");
+
                     b.HasIndex("OrderId");
 
                     b.ToTable("OrderLines");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DishId = 5,
+                            OrderId = 1,
+                            Quantity = 2
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DishId = 6,
+                            OrderId = 2,
+                            Quantity = 1
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DishId = 1,
+                            OrderId = 2,
+                            Quantity = 1
+                        },
+                        new
+                        {
+                            Id = 4,
+                            DishId = 4,
+                            OrderId = 3,
+                            Quantity = 1
+                        },
+                        new
+                        {
+                            Id = 5,
+                            DishId = 8,
+                            OrderId = 3,
+                            Quantity = 3
+                        });
                 });
 
             modelBuilder.Entity("DarkKitchen.Data.Entities.DishIngredient", b =>
@@ -873,11 +942,19 @@ namespace DarkKitchen.Data.Migrations
 
             modelBuilder.Entity("DarkKitchen.Data.Entities.OrderLine", b =>
                 {
+                    b.HasOne("DarkKitchen.Data.Entities.Dish", "Dish")
+                        .WithMany()
+                        .HasForeignKey("DishId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("DarkKitchen.Data.Entities.Order", null)
                         .WithMany("Lines")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Dish");
                 });
 
             modelBuilder.Entity("DarkKitchen.Data.Entities.Customer", b =>

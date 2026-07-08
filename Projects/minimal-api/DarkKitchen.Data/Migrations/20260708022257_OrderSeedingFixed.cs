@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -7,36 +8,95 @@
 namespace DarkKitchen.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialSeeding : Migration
+    public partial class OrderSeedingFixed : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Ingredients_Dishes_DishId",
-                table: "Ingredients");
+            migrationBuilder.CreateTable(
+                name: "Customers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Customers", x => x.Id);
+                });
 
-            migrationBuilder.DropIndex(
-                name: "IX_Ingredients_DishId",
-                table: "Ingredients");
+            migrationBuilder.CreateTable(
+                name: "Dishes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(10,2)", precision: 10, scale: 2, nullable: false),
+                    OriginCountry = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Enabled = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Dishes", x => x.Id);
+                });
 
-            migrationBuilder.DropColumn(
-                name: "DishId",
-                table: "Ingredients");
+            migrationBuilder.CreateTable(
+                name: "FulfillmentEvents",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrderId = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FulfilledAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FulfillmentEvents", x => x.Id);
+                });
 
-            migrationBuilder.AddColumn<int>(
-                name: "Unit",
-                table: "Ingredients",
-                type: "int",
-                nullable: false,
-                defaultValue: 0);
+            migrationBuilder.CreateTable(
+                name: "Ingredients",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Stock = table.Column<decimal>(type: "decimal(10,2)", precision: 10, scale: 2, nullable: false),
+                    Unit = table.Column<int>(type: "int", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Ingredients", x => x.Id);
+                });
 
-            migrationBuilder.AddColumn<string>(
-                name: "OriginCountry",
-                table: "Dishes",
-                type: "nvarchar(max)",
-                nullable: false,
-                defaultValue: "");
+            migrationBuilder.CreateTable(
+                name: "Orders",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    Priority = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    CompletedUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Orders", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Orders_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
 
             migrationBuilder.CreateTable(
                 name: "DishIngredients",
@@ -61,6 +121,33 @@ namespace DarkKitchen.Data.Migrations
                         name: "FK_DishIngredients_Ingredients_IngredientId",
                         column: x => x.IngredientId,
                         principalTable: "Ingredients",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrderLines",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrderId = table.Column<int>(type: "int", nullable: false),
+                    DishId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrderLines", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrderLines_Dishes_DishId",
+                        column: x => x.DishId,
+                        principalTable: "Dishes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OrderLines_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -90,7 +177,7 @@ namespace DarkKitchen.Data.Migrations
                     { 6, "Rich, comforting pasta dish consisting of long, flat fettuccine noodles coated in a velvety, indulgent sauce.", true, "Fettucine alfredo", "Italy", 0m },
                     { 7, "Savory Latin American casserole. It features a base of seasoned ground beef (pino) layered with hard-boiled eggs, black olives, and raisins.", true, "Potato Pie", "Chile", 0m },
                     { 8, "Traditional Dutch bite-sized snacks consisting of a rich, thick meat ragout enveloped in a crispy, deep-fried breadcrumb crust.", true, "Bitterballen", "Netherlands", 0m },
-                    { 9, "", true, "Fatteh", "Egypt", 0m },
+                    { 9, "Classic Middle Eastern dish. It features crispy, toasted pita bread combined with warm ingredients and creamy sauces.", true, "Fatteh", "Egypt", 0m },
                     { 10, "Southern-style, pressure-fried chicken. Each piece is coated in a proprietary blend of 11 herbs and spices, resulting in a signature golden-brown, crispy exterior that shatters upon the first bite, giving way to piping-hot, exceptionally tender and juicy meat.", true, "Kentucky Fried Chicken", "United States", 0m }
                 });
 
@@ -179,6 +266,28 @@ namespace DarkKitchen.Data.Migrations
                     { 54, 10, 3, 0.01m }
                 });
 
+            migrationBuilder.InsertData(
+                table: "Orders",
+                columns: new[] { "Id", "CompletedUtc", "CustomerId", "Priority", "Status" },
+                values: new object[,]
+                {
+                    { 1, null, 3, 0, 1 },
+                    { 2, null, 2, 0, 2 },
+                    { 3, null, 5, 1, 1 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "OrderLines",
+                columns: new[] { "Id", "DishId", "OrderId", "Quantity" },
+                values: new object[,]
+                {
+                    { 1, 5, 1, 2 },
+                    { 2, 6, 2, 1 },
+                    { 3, 1, 2, 1 },
+                    { 4, 4, 3, 1 },
+                    { 5, 8, 3, 3 }
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_DishIngredients_DishId",
                 table: "DishIngredients",
@@ -188,6 +297,21 @@ namespace DarkKitchen.Data.Migrations
                 name: "IX_DishIngredients_IngredientId",
                 table: "DishIngredients",
                 column: "IngredientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderLines_DishId",
+                table: "OrderLines",
+                column: "DishId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderLines_OrderId",
+                table: "OrderLines",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_CustomerId",
+                table: "Orders",
+                column: "CustomerId");
         }
 
         /// <inheritdoc />
@@ -196,191 +320,23 @@ namespace DarkKitchen.Data.Migrations
             migrationBuilder.DropTable(
                 name: "DishIngredients");
 
-            migrationBuilder.DeleteData(
-                table: "Customers",
-                keyColumn: "Id",
-                keyValue: 1);
+            migrationBuilder.DropTable(
+                name: "FulfillmentEvents");
 
-            migrationBuilder.DeleteData(
-                table: "Customers",
-                keyColumn: "Id",
-                keyValue: 2);
+            migrationBuilder.DropTable(
+                name: "OrderLines");
 
-            migrationBuilder.DeleteData(
-                table: "Customers",
-                keyColumn: "Id",
-                keyValue: 3);
+            migrationBuilder.DropTable(
+                name: "Ingredients");
 
-            migrationBuilder.DeleteData(
-                table: "Customers",
-                keyColumn: "Id",
-                keyValue: 4);
+            migrationBuilder.DropTable(
+                name: "Dishes");
 
-            migrationBuilder.DeleteData(
-                table: "Customers",
-                keyColumn: "Id",
-                keyValue: 5);
+            migrationBuilder.DropTable(
+                name: "Orders");
 
-            migrationBuilder.DeleteData(
-                table: "Dishes",
-                keyColumn: "Id",
-                keyValue: 1);
-
-            migrationBuilder.DeleteData(
-                table: "Dishes",
-                keyColumn: "Id",
-                keyValue: 2);
-
-            migrationBuilder.DeleteData(
-                table: "Dishes",
-                keyColumn: "Id",
-                keyValue: 3);
-
-            migrationBuilder.DeleteData(
-                table: "Dishes",
-                keyColumn: "Id",
-                keyValue: 4);
-
-            migrationBuilder.DeleteData(
-                table: "Dishes",
-                keyColumn: "Id",
-                keyValue: 5);
-
-            migrationBuilder.DeleteData(
-                table: "Dishes",
-                keyColumn: "Id",
-                keyValue: 6);
-
-            migrationBuilder.DeleteData(
-                table: "Dishes",
-                keyColumn: "Id",
-                keyValue: 7);
-
-            migrationBuilder.DeleteData(
-                table: "Dishes",
-                keyColumn: "Id",
-                keyValue: 8);
-
-            migrationBuilder.DeleteData(
-                table: "Dishes",
-                keyColumn: "Id",
-                keyValue: 9);
-
-            migrationBuilder.DeleteData(
-                table: "Dishes",
-                keyColumn: "Id",
-                keyValue: 10);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 1);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 2);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 3);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 4);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 5);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 6);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 7);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 8);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 9);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 10);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 11);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 12);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 13);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 14);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 15);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 16);
-
-            migrationBuilder.DeleteData(
-                table: "Ingredients",
-                keyColumn: "Id",
-                keyValue: 17);
-
-            migrationBuilder.DropColumn(
-                name: "Unit",
-                table: "Ingredients");
-
-            migrationBuilder.DropColumn(
-                name: "OriginCountry",
-                table: "Dishes");
-
-            migrationBuilder.AddColumn<int>(
-                name: "DishId",
-                table: "Ingredients",
-                type: "int",
-                nullable: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Ingredients_DishId",
-                table: "Ingredients",
-                column: "DishId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Ingredients_Dishes_DishId",
-                table: "Ingredients",
-                column: "DishId",
-                principalTable: "Dishes",
-                principalColumn: "Id");
+            migrationBuilder.DropTable(
+                name: "Customers");
         }
     }
 }

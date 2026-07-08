@@ -7,12 +7,11 @@ namespace DarkKitchen.Data.Entities;
 public class Order
 {
     public int Id {get; set;}
-
     public int CustomerId { get; set;} // FK -> Customer
     public Customer Customer { get; set; } = default!;
     public OrderPriority Priority { get; set; }
     public OrderStatus Status { get; set; }
-    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedUtc { get; set; }
     public DateTime? CompletedUtc { get; set; }
 
     // Every Order has one or more OrderLines

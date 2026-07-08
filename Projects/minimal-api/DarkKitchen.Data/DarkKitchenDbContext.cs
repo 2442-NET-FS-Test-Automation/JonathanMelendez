@@ -21,6 +21,12 @@ public class DarkKitchenDbContext : DbContext
 
         modelBuilder.Entity<Ingredient>().Property(i => i.RowVersion).IsRowVersion();
 
+        modelBuilder.Entity<Order>().Property(o => o.CreatedUtc)
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        modelBuilder.Entity<FulfillmentEvent>().Property(f => f.FulfilledAtUtc)
+            .HasDefaultValueSql("GETUTCDATE()");
+
         // Seed Customers
         modelBuilder.Entity<Customer>().HasData(
             new Customer {Id = 1, Name = "Jonathan", Email = "jonathan@example.com"},
@@ -69,7 +75,7 @@ public class DarkKitchenDbContext : DbContext
                 OriginCountry = "Chile", Enabled = true},
             new Dish {Id = 8, Name = "Bitterballen", Description = "Traditional Dutch bite-sized snacks consisting of a rich, thick meat ragout enveloped in a crispy, deep-fried breadcrumb crust.", 
                 OriginCountry = "Netherlands", Enabled = true},
-            new Dish {Id = 9, Name = "Fatteh", Description = "", 
+            new Dish {Id = 9, Name = "Fatteh", Description = "Classic Middle Eastern dish. It features crispy, toasted pita bread combined with warm ingredients and creamy sauces.", 
                 OriginCountry = "Egypt", Enabled = true},
             new Dish {Id = 10, Name = "Kentucky Fried Chicken", Description = "Southern-style, pressure-fried chicken. Each piece is coated in a proprietary blend of 11 herbs and spices, resulting in a signature golden-brown, crispy exterior that shatters upon the first bite, giving way to piping-hot, exceptionally tender and juicy meat.", 
                 OriginCountry = "United States", Enabled = true}
@@ -133,9 +139,9 @@ public class DarkKitchenDbContext : DbContext
     
         // Seed Orders
         modelBuilder.Entity<Order>().HasData(
-            new Order {Id = 1, CustomerId = 3, Priority = OrderPriority.Normal, Status = OrderStatus.Fulfilled, CompletedUtc = new DateTime(2026, 7, 7, 18, 15, 36, DateTimeKind.Utc) },
-            new Order {Id = 2, CustomerId = 2, Priority = OrderPriority.Normal, Status = OrderStatus.Backordered, CompletedUtc = new DateTime(2026, 7, 7, 18, 21, 52, DateTimeKind.Utc)},
-            new Order {Id = 3, CustomerId = 5, Priority = OrderPriority.Urgent, Status = OrderStatus.Fulfilled, CompletedUtc = new DateTime(2026, 7, 7, 18, 59, 11, DateTimeKind.Utc)}
+            new Order {Id = 1, CustomerId = 3, Priority = OrderPriority.Normal, Status = OrderStatus.Fulfilled},
+            new Order {Id = 2, CustomerId = 2, Priority = OrderPriority.Normal, Status = OrderStatus.Backordered},
+            new Order {Id = 3, CustomerId = 5, Priority = OrderPriority.Urgent, Status = OrderStatus.Fulfilled}
         );
         modelBuilder.Entity<OrderLine>().HasData(
             new OrderLine {Id = 1, OrderId = 1, DishId = 5, Quantity = 2},

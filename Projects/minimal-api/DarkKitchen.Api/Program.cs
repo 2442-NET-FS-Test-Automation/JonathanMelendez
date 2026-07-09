@@ -335,15 +335,76 @@ app.MapDelete("/customers", async (int customerId, DarkKitchenDbContext db) =>
 });
 
 // Reports
-app.MapGet("/reports/top-products", async (DarkKitchenDbContext db) =>
+app.MapGet("/reports/dishes/ranking", async (DarkKitchenDbContext db) =>
+    Results.Ok(await db.FulfillmentEvents
+        .Where(f => f.Result == FulfillmentResult.Fulfilled)
+        .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
+        .GroupBy(l => l.DishId)
+        .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
+        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {d.Name, UnitsSold = g.Units})
+        .OrderByDescending(x => x.UnitsSold)
+        .ToListAsync()));
+
+app.MapGet("/reports/dishes/ranking/{rank:int}", async (int rank, DarkKitchenDbContext db) =>
+{
+    var dish = await db.FulfillmentEvents
+        .Where(f => f.Result == FulfillmentResult.Fulfilled)
+        .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
+        .GroupBy(l => l.DishId)
+        .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
+        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {d.Name, UnitsSold = g.Units})
+        .OrderByDescending(x => x.UnitsSold)
+        .Skip(rank-1)
+        .Take(1)
+        .FirstAsync();
+    
+    if (dish is null) return Results.NotFound($"Rank {rank} not in range");
+    return Results.Ok(dish);
+});
+
+app.MapGet("reports/dishes/ranking/{dishName}", async (string dishName, DarkKitchenDbContext db) =>
+{
+    var dishesByRank = await db.FulfillmentEvents
+        .Where(f => f.Result == FulfillmentResult.Fulfilled)
+        .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
+        .GroupBy(l => l.DishId)
+        .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
+        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {d.Name, UnitsSold = g.Units})
+        .OrderByDescending(x => x.UnitsSold)
+        .ToListAsync();
+
+    var rankedDishes = 
+        dishesByRank.Select((x, index) => new 
+            {
+                Rank = index + 1,
+                x.Name, 
+                x.UnitsSold 
+            })
+            .OrderBy(o => o.Name)
+            .ToList();
+
+    var target = new { Rank = 0, Name = dishName, UnitsSold = 0 };
+    
+    int res = rankedDishes.BinarySearch(target, Comparer<dynamic>.Create((a, b) =>
+        {
+            string nameA = (a).Name;
+            string nameB = (b).Name;
+            return string.Compare(nameA, nameB, StringComparison.OrdinalIgnoreCase);
+        }));
+    
+    if (res < 0) return Results.NotFound($"");
+    return Results.Ok(rankedDishes[res].Rank);
+});
+
+app.MapGet("/reports/dishes/ranking/top-{qty:int}", async (int qty, DarkKitchenDbContext db) =>
     await db.FulfillmentEvents
         .Where(f => f.Result == FulfillmentResult.Fulfilled)
         .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
         .GroupBy(l => l.DishId)
         .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
-        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {g.Units, d.Name})
-        .OrderByDescending(x => x.Units)
-        .Take(3)
+        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {d.Name, UnitsSold = g.Units})
+        .OrderByDescending(x => x.UnitsSold)
+        .Take(qty)
         .ToListAsync());
 
 app.MapGet("/reports/top-customers", async (DarkKitchenDbContext db) =>

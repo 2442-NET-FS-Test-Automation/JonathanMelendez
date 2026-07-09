@@ -40,7 +40,8 @@ app.UseSwaggerUI();
 app.MapGet("/dish-menu", (DarkKitchenDbContext db) => db.Dishes.ToList());
 
 app.MapGet("/dish-menu/search/{name}", (string name, DarkKitchenDbContext db) => 
-    db.Dishes.Where(d => d.Name.ToLower().Contains(name.ToLower())));
+    db.Dishes.Where(d => d.Name.ToLower().Contains(name.ToLower()))
+);
 
 
 // Inventory stuff
@@ -93,11 +94,16 @@ app.MapGet("/orders/{orderId:int}", (int orderId, DarkKitchenDbContext db) =>
 
 app.MapPost("/orders/single", () =>
 {
+    // receive a list of dishes names or ids?
+    // makes an order wich is needed order lines
+    // saves the order
+    // Tries to fulfill it
     return "You place one order here";
 });
 
 app.MapPost("/orders/burst", () =>
 {
+    // Same as one but multiple and with generated orders
     return "You send a burst of orders here";
 });
 

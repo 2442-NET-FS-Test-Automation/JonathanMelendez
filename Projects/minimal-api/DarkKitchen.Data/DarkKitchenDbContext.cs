@@ -60,25 +60,25 @@ public class DarkKitchenDbContext : DbContext
         // Seed Dishes
         modelBuilder.Entity<Dish>().HasData(
             new Dish {Id = 1, Name = "Leche Asada", Description = "Traditional Latin American custard dessert popular in countries like Peru, Chile, and Colombia. Similar to flan or crème brûlée.", 
-                OriginCountry = "Chile", Enabled = true},
+                OriginCountry = "Chile", Enabled = true, Price = 5.99m},
             new Dish {Id = 2, Name = "Colombian Buñuelos", Description = "Round, deep-fried cheese fritters that are crispy on the outside and soft and airy on the inside.", 
-                OriginCountry = "Colombia", Enabled = true},
+                OriginCountry = "Colombia", Enabled = true, Price = 4.99m},
             new Dish {Id = 3, Name = "Arroz con leche", Description = "Traditional, creamy rice pudding", 
-                OriginCountry = "Spain", Enabled = true},
+                OriginCountry = "Spain", Enabled = true, Price = 3.99m},
             new Dish {Id = 4, Name = "Fried cheese empanadas", Description = "Classic Latin American pastry made by folding dough into a half-moon shape, filling it with melty cheese, and deep-frying it until the exterior is crispy and the inside is gooey.", 
-                OriginCountry = "Mexico", Enabled = true},
+                OriginCountry = "Mexico", Enabled = true, Price = 6.99m},
             new Dish {Id = 5, Name = "New York cheesecake", Description = "Iconic, ultra-rich dessert renowned for its dense, velvety texture.", 
-                OriginCountry = "United States", Enabled = true},
+                OriginCountry = "United States", Enabled = true, Price = 7.99m},
             new Dish {Id = 6, Name = "Fettucine alfredo", Description = "Rich, comforting pasta dish consisting of long, flat fettuccine noodles coated in a velvety, indulgent sauce.", 
-                OriginCountry = "Italy", Enabled = true},
+                OriginCountry = "Italy", Enabled = true, Price = 8.99m},
             new Dish {Id = 7, Name = "Potato Pie", Description = "Savory Latin American casserole. It features a base of seasoned ground beef (pino) layered with hard-boiled eggs, black olives, and raisins.", 
-                OriginCountry = "Chile", Enabled = true},
+                OriginCountry = "Chile", Enabled = true, Price = 5.99m},
             new Dish {Id = 8, Name = "Bitterballen", Description = "Traditional Dutch bite-sized snacks consisting of a rich, thick meat ragout enveloped in a crispy, deep-fried breadcrumb crust.", 
-                OriginCountry = "Netherlands", Enabled = true},
+                OriginCountry = "Netherlands", Enabled = true, Price = 4.99m},
             new Dish {Id = 9, Name = "Fatteh", Description = "Classic Middle Eastern dish. It features crispy, toasted pita bread combined with warm ingredients and creamy sauces.", 
-                OriginCountry = "Egypt", Enabled = true},
+                OriginCountry = "Egypt", Enabled = true, Price = 5.99m},
             new Dish {Id = 10, Name = "Kentucky Fried Chicken", Description = "Southern-style, pressure-fried chicken. Each piece is coated in a proprietary blend of 11 herbs and spices, resulting in a signature golden-brown, crispy exterior that shatters upon the first bite, giving way to piping-hot, exceptionally tender and juicy meat.", 
-                OriginCountry = "United States", Enabled = true}
+                OriginCountry = "United States", Enabled = true, Price = 7.99m}
         );
         modelBuilder.Entity<DishIngredient>().HasData(
             new DishIngredient {Id = 1, DishId = 1, IngredientId = 4, Quantity = 0.25m},

@@ -3,22 +3,22 @@ public static class IngredientDefaults
 {
     public static readonly Dictionary<int, decimal> InitialStocks = new()
     {
-        { 1, 5 },   // White Rice
+        { 1, 20 },   // White Rice
         { 2, 20 },  // Water
-        { 3, 1 },   // Salt
-        { 4, 5 },   // Milk
-        { 5, 1 },   // Butter
-        { 6, 2 },   // Sugar
-        { 7, 50 },  // Condensed Milk
-        { 8, 40 },  // Egg
-        { 9, 5 },   // Flour
-        { 10, 5 },  // Chicken
-        { 11, 8 },  // Cheese
-        { 12, 6 },  // Potato
-        { 13, 15 }, // Tomato
-        { 14, 3 },  // Ground Beef
-        { 15, 10 }, // Onion
-        { 16, 5 },  // Cream
-        { 17, 3 }   // Pasta
+        { 3, 2 },   // Salt
+        { 4, 25 },   // Milk
+        { 5, 20 },   // Butter
+        { 6, 20 },   // Sugar
+        { 7, 75 },  // Condensed Milk
+        { 8, 150 },  // Egg
+        { 9, 15 },   // Flour
+        { 10, 15 },  // Chicken
+        { 11, 20 },  // Cheese
+        { 12, 15 },  // Potato
+        { 13, 50 }, // Tomato
+        { 14, 20 },  // Ground Beef
+        { 15, 50 }, // Onion
+        { 16, 10 },  // Cream
+        { 17, 10 }   // Pasta
     };
 }

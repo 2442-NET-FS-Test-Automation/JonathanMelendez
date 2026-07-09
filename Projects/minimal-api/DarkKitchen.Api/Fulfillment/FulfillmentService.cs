@@ -42,41 +42,18 @@ public class FulfillmentService(
             .GroupBy(x => x.IngredientId)
             .ToDictionary(g => g.Key, g => g.Sum(x => x.AmountNeeded));
 
-        // Get current Stock from db
-        var ingredientIds = ingredientsRequired.Keys.ToList();
-        var currentStocks = await db.Ingredients
-            .Where(i => ingredientIds.Contains(i.Id))
-            .Select(i => new { i.Id, i.Stock })
-            .ToDictionaryAsync(i => i.Id, i => i.Stock, ct);
-
-        // Check if we have all ingredients available
-        bool canFulfill = ingredientsRequired.All(ing => currentStocks[ing.Key] >= ing.Value);
-
-        if (canFulfill)
+        if (await SaveWithRetryAsync(db, ingredientsRequired, ct))
         {
-            // Get the actual entities
-            var ingredientsToUpdate = await db.Ingredients
-                .Where(i => ingredientIds.Contains(i.Id))
-                .ToListAsync(ct);
-        
-            foreach (var ingredient in ingredientsToUpdate)
-            {
-                ingredient.Stock -= ingredientsRequired[ingredient.Id];
-            }
             order.Status = OrderStatus.Fulfilled;
             db.FulfillmentEvents.Add(new FulfillmentEvent { OrderId = orderId, Result = FulfillmentResult.Fulfilled});
-                
-            if (await SaveWithRetryAsync(db, ingredientsRequired, ct))
-            {
-                Log.Information("Fulfilled {OrderId}.", orderId);   
-                return FulfillmentResult.Fulfilled;
-            }
-            // if save failed, clear all changes that could still be made to ingredients
-            db.ChangeTracker.Clear();
+        
+            await db.SaveChangesAsync(ct);
+            Log.Information("Fulfilled {OrderId}.", orderId);   
+            return FulfillmentResult.Fulfilled;
         }
+        db.ChangeTracker.Clear();
 
-        // If theres not enough stock to begin with we get here        
-        var freshOrder = await db.Orders.FirstAsync(o => o.Id == orderId, ct);
+        var freshOrder = await db.Orders.Where(o => o.Id == orderId).FirstAsync(ct);
 
         freshOrder.Status = OrderStatus.Backordered;
         db.FulfillmentEvents.Add(new FulfillmentEvent { OrderId = orderId, Result = FulfillmentResult.Backordered});
@@ -112,6 +89,18 @@ public class FulfillmentService(
         IReadOnlyDictionary<int, decimal> ingredientsRequired, CancellationToken ct
     )
     {
+        var ingredientIds = ingredientsRequired.Keys.ToList();
+        // Get the actual entities
+        var ingredientsToUpdate = await db.Ingredients
+            .Where(i => ingredientIds.Contains(i.Id))
+            .ToListAsync(ct);
+        
+        foreach (var ingredient in ingredientsToUpdate)
+        {
+            if (ingredient.Stock >= ingredientsRequired[ingredient.Id])
+                ingredient.Stock -= ingredientsRequired[ingredient.Id];
+            else return false;
+        }
         while (true) { // Keep trying until the stock gets dried or some other thing fail
             try
             {

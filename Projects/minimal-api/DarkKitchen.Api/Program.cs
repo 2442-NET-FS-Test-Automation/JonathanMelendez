@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using Serilog;
 
 using DarkKitchen.Api.Fulfillment;
@@ -122,7 +123,7 @@ app.MapGet("/inventory/by-stock", async (DarkKitchenDbContext db) =>
         .OrderByDescending(i => i.Stock)
         .ToListAsync()));
 
-app.MapGet("/inventory/out-of-stock", async (DarkKitchenDbContext db) => 
+app.MapGet("/inventory/low-stock", async (DarkKitchenDbContext db) => 
     Results.Ok(await db.Ingredients
         .Select(i => new { i.Name, i.Stock })
         .Where(i => i.Stock <= 0.5m)
@@ -364,9 +365,114 @@ app.MapGet("/reports/fulfillment-rate", async (DarkKitchenDbContext db) =>
 
 
 // Benchmarking and tests
-app.MapPost("/benchmark", async () =>
-{
-    return "Test parallel vs sequential burst";
+app.MapPost("/benchmark", async (
+    BurstOrderPayload payload,
+    IFulfillmentService fs,
+    DarkKitchenDbContext db,
+    CancellationToken ct
+) => {
+    // Verify all customers are valid
+    var customerIds = payload.Orders.Select(o => o.CustomerId).ToList();
+    var existingCustomers = await db.Customers
+        .Where(c => customerIds.Contains(c.Id))
+        .Select(c => c.Id)
+        .ToListAsync(ct);
+
+    var missingCustomers = customerIds.Except(existingCustomers).ToList();
+    if (missingCustomers.Count > 0)
+        return Results.BadRequest($"Customers not found: {string.Join(", ", missingCustomers)}");
+
+    // verify all dishes are valid
+    var dishIds = payload.Orders
+        .SelectMany(o => o.Lines.Select(l => l.DishId))
+        .Distinct()
+        .ToList();
+
+    var existingDishes = await db.Dishes
+        .Where(d => dishIds.Contains(d.Id))
+        .Select(d => d.Id)
+        .ToListAsync(ct);
+
+    var missingDishes = dishIds.Except(existingDishes).ToList();
+    if (missingDishes.Count > 0)
+        return Results.BadRequest($"Dishes not found: {string.Join(", ", missingDishes)}");
+    
+    // Reset Stocks
+    foreach(var ingredient in db.Ingredients)
+    {
+        if (IngredientDefaults.InitialStocks.TryGetValue(ingredient.Id, out decimal initialStock))
+        {
+            ingredient.Stock = initialStock;
+            Log.Information("Reset ingredient {id} to {stock} stock", ingredient.Id, initialStock);
+        }
+    }
+    Log.Information("Applying reset changes...");
+    await db.SaveChangesAsync();
+
+    // Create first batch for sequential
+    var ordersS = payload.Orders.Select(o => new Order
+        {
+            CustomerId = o.CustomerId,
+            Status = OrderStatus.Pending,
+            Lines = o.Lines.Select(l => new OrderLine
+            {
+                DishId = l.DishId,
+                Quantity = l.Quantity
+            }).ToList()
+        }).ToList();
+
+    // Save to generate IDs and persist the orders
+    db.Orders.AddRange(ordersS);
+    await db.SaveChangesAsync(ct);
+
+    // Sequential execution
+    var sw1 = Stopwatch.StartNew();
+    foreach (var order in ordersS)
+        await fs.FulfillOneAsync(order.Id, ct);
+    sw1.Stop();
+
+    // Reset stocks
+    foreach(var ingredient in db.Ingredients)
+    {
+        if (IngredientDefaults.InitialStocks.TryGetValue(ingredient.Id, out decimal initialStock))
+        {
+            ingredient.Stock = initialStock;
+            Log.Information("Reset ingredient {id} to {stock} stock", ingredient.Id, initialStock);
+        }
+    }
+    Log.Information("Applying reset changes...");
+    await db.SaveChangesAsync();
+
+    // Second batch for Parallel
+    var ordersP = payload.Orders.Select(o => new Order
+        {
+            CustomerId = o.CustomerId,
+            Status = OrderStatus.Pending,
+            Lines = o.Lines.Select(l => new OrderLine
+            {
+                DishId = l.DishId,
+                Quantity = l.Quantity
+            }).ToList()
+        }).ToList();
+
+    // Save to generate IDs and persist the orders
+    db.Orders.AddRange(ordersP);
+    await db.SaveChangesAsync(ct);
+
+    // Parallel exec
+    var sw2 = Stopwatch.StartNew();
+    await fs.FulfillBurstAsync(ordersP.Select(o => o.Id).ToList(), ct);
+    sw2.Stop();
+
+    var sequentialMs = sw1.ElapsedMilliseconds;
+    var concurrentMs = sw2.ElapsedMilliseconds;
+
+    return Results.Ok(new
+    {
+        sequentialMs,
+        concurrentMs,
+        speedup = $"{(double)sequentialMs/concurrentMs:F2}"
+    });
 });
 
 app.MapGet("/verify/no-oversell", async (DarkKitchenDbContext db, CancellationToken ct) =>

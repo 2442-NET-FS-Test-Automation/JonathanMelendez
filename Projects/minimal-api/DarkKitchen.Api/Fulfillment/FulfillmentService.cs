@@ -85,11 +85,27 @@ public class FulfillmentService(
 
         await db.SaveChangesAsync(ct);
         return FulfillmentResult.Backordered;
-        
     }
     public async Task<BurstResult> FulfillBurstAsync(IEnumerable<int> orderIds, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        List<int> idList = orderIds.ToList();
+        List<Order> orders;
+
+        await using (var db = await _dbF.CreateDbContextAsync(ct))
+        {   // Look in our db, grab every order that appears in our idList
+            orders = await db.Orders.Where(o => idList.Contains(o.Id)).ToListAsync(ct);
+        }
+        
+        var planned = OrderByPriority(orders);
+        var tasks = planned.Select(id => FulfillOneAsync(id, ct));
+
+        // Await here until all tasks are complete
+        var results = await Task.WhenAll(tasks);
+
+        return new BurstResult(
+            Fulfilled: results.Count(r => r == FulfillmentResult.Fulfilled),
+            Backordered: results.Count(r => r == FulfillmentResult.Backordered)
+        );
     }
     public async Task<bool> SaveWithRetryAsync(
         DarkKitchenDbContext db, 
@@ -124,5 +140,22 @@ public class FulfillmentService(
                 }
             }
         }
+    }
+
+    public IReadOnlyList<int> OrderByPriority(IEnumerable<Order> orders)
+    {
+        PriorityQueue<int, int> pq = new();
+
+        foreach (Order o in orders)
+            pq.Enqueue(o.Id, o.Priority == OrderPriority.Urgent ? 0 : 1);
+
+        var orderedByPriority = new List<int>();
+
+        while (pq.TryDequeue(out int id, out _))
+        {
+            orderedByPriority.Add(id);
+        }
+
+        return orderedByPriority;
     }
 }

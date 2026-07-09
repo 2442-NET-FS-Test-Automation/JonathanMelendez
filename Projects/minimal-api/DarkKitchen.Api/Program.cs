@@ -5,7 +5,6 @@ using DarkKitchen.Api.Fulfillment;
 using DarkKitchen.Data.Entities;
 using DarkKitchen.Data.Defaults;
 using DarkKitchen.Data;
-using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,26 +37,46 @@ app.UseSwaggerUI();
 
 
 // dih menu
-app.MapGet("/dish-menu", async (DarkKitchenDbContext db) => Results.Ok(db.Dishes.ToListAsync()));
+app.MapGet("/dish-menu", async (DarkKitchenDbContext db) => 
+    Results.Ok(await db.Dishes
+        .Where(d => d.Enabled == true)
+        .Select(d => new { d.Name, d.Description, d.OriginCountry, d.Price })
+        .ToListAsync()));
 
 app.MapGet("/dish-menu/by-price", async (DarkKitchenDbContext db) => 
     Results.Ok(await db.Dishes
-        .Select(d => new { d.Name, d.Price })
+        .Select(d => new { d.Name, d.Description, d.OriginCountry, d.Price })
         .OrderByDescending(d => d.Price)
         .ToListAsync()));
 
 app.MapGet("/dish-menu/search/{id:int}", async (int id, DarkKitchenDbContext db) =>
 {
-    var dish = await db.Dishes.Where(d => d.Id == id).FirstOrDefaultAsync();
+    var dish = await db.Dishes
+        .Where(d => d.Id == id)
+        .Select(d => new { d.Name, d.Description, d.OriginCountry, d.Price, Enabled = d.Enabled.ToString() })
+        .FirstOrDefaultAsync();
     if (dish == null) return Results.NotFound($"No dish found with id '{id}'");
     return Results.Ok(dish);
 });
 
 app.MapGet("/dish-menu/search/{name}", async (string name, DarkKitchenDbContext db) =>
 {
-    var dishes = await db.Dishes.Where(d => d.Name.ToLower().Contains(name.ToLower())).ToListAsync();
+    var dishes = await db.Dishes
+        .Select(d => new { d.Id, d.Name, d.Description, d.OriginCountry, d.Price, Enabled = d.Enabled.ToString() })
+        .Where(d => d.Name.ToLower().Contains(name.ToLower()))
+        .ToListAsync();
     if (dishes.Count() == 0) return Results.NotFound($"No dishes found with name containing '{name}'");
     return Results.Ok(dishes);
+});
+
+app.MapGet("/dish-menu/disabled", async (DarkKitchenDbContext db) =>
+{
+    var disabledDishes = await db.Dishes
+        .Where(d => d.Enabled == false)
+        .Select(d => new { d.Id, d.Name, d.Description, d.OriginCountry, d.Price })
+        .ToListAsync();
+    if (disabledDishes.Count > 0) return Results.Ok(disabledDishes);
+    return Results.NoContent();
 });
 
 app.MapPost("/dish-menu/toggle-enabled/{id:int}", async (int id, DarkKitchenDbContext db) =>
@@ -190,10 +209,75 @@ app.MapPost("/orders/single", async (
     return Results.Created($"/orders/{newOrder.Id}", new { OrderId = newOrder.Id, FulfillmentResult = result.ToString() });
 });
 
-app.MapPost("/orders/burst", async () =>
-{
-    // Same as one but multiple and with generated orders
-    return "You send a burst of orders here";
+app.MapPost("/orders/burst", async(
+    BurstOrderPayload payload,
+    DarkKitchenDbContext db,
+    IServiceScopeFactory scopes,
+    IHostApplicationLifetime lifetime
+) => {
+    var ct = lifetime.ApplicationStopping;
+
+    // Verify all customers are valid
+    var customerIds = payload.Orders.Select(o => o.CustomerId).ToList();
+    var existingCustomers = await db.Customers
+        .Where(c => customerIds.Contains(c.Id))
+        .Select(c => c.Id)
+        .ToListAsync(ct);
+
+    var missingCustomers = customerIds.Except(existingCustomers).ToList();
+    if (missingCustomers.Count > 0)
+        return Results.BadRequest($"Customers not found: {string.Join(", ", missingCustomers)}");
+
+    // verify all dishes are valid
+    var dishIds = payload.Orders
+        .SelectMany(o => o.Lines.Select(l => l.DishId))
+        .Distinct()
+        .ToList();
+
+    var existingDishes = await db.Dishes
+        .Where(d => dishIds.Contains(d.Id))
+        .Select(d => d.Id)
+        .ToListAsync(ct);
+
+    var missingDishes = dishIds.Except(existingDishes).ToList();
+    if (missingDishes.Count > 0)
+        return Results.BadRequest($"Dishes not found: {string.Join(", ", missingDishes)}");
+    
+    // Create orders
+    var orders = payload.Orders.Select(o => new Order
+        {
+            CustomerId = o.CustomerId,
+            Status = OrderStatus.Pending,
+            Lines = o.Lines.Select(l => new OrderLine
+            {
+                DishId = l.DishId,
+                Quantity = l.Quantity
+            }).ToList()
+        }).ToList();
+
+    // Save to generate IDs and persist the orders
+    db.Orders.AddRange(orders);
+    await db.SaveChangesAsync(ct);
+
+    var orderIds = orders.Select(o => o.Id).ToList();
+    Log.Information("Created {OrderCount} orders: {OrderIds}", orderIds.Count, string.Join(", ", orderIds));
+
+    _ = Task.Run( async () => // assigning the task result to a discard runs this as a background task
+    {
+        try
+        {
+            using var scope = scopes.CreateScope(); // ask for a fresh scope
+            var service  = scope.ServiceProvider.GetRequiredService<IFulfillmentService>(); //grab a fulfillment service
+            await service.FulfillBurstAsync(orderIds, ct); // use it to call fulfillBurstAsync()
+        }
+        catch (Exception e)
+        {
+            // Fail in silence
+            Log.Error(e, "Burst fulfillment failed");
+        }
+    }, ct);
+
+    return Results.Accepted();
 });
 
 
@@ -237,6 +321,17 @@ app.MapPost("/customers", async (CustomerCreatePayload payload, DarkKitchenDbCon
     return Results.Created($"/customers/{customer.Id}", customer);
 });
 
+app.MapDelete("/customers", async (int customerId, DarkKitchenDbContext db) =>
+{
+    var customer = await db.Customers.Where(c => c.Id == customerId).FirstAsync();
+    
+    if (customer is null) return Results.NotFound("Customer with id {customer.Id} not found");
+    
+    db.Customers.Remove(customer);
+    db.SaveChanges();
+
+    return Results.Ok($"Customer {customer.Name} with id {customer.Id} was deleted");
+});
 
 // Reports
 app.MapGet("/reports/top-products", async (DarkKitchenDbContext db) =>
@@ -274,9 +369,11 @@ app.MapPost("/benchmark", async () =>
     return "Test parallel vs sequential burst";
 });
 
-app.MapGet("/verify/no-oversell", async () =>
+app.MapGet("/verify/no-oversell", async (DarkKitchenDbContext db, CancellationToken ct) =>
 {
-    return "Check for ingredients that have negative stock and report them";
+    var oversold = await db.Ingredients.Where(i => i.Stock < 0).ToListAsync(ct);
+    if (oversold.Count > 0) return Results.Ok(oversold);
+    return Results.NoContent();
 });
 
 app.Run();
@@ -285,5 +382,7 @@ Log.CloseAndFlush();
 
 public record OrderLinePayload(int DishId, int Quantity);
 public record OrderPayload(int CustomerId, List<OrderLinePayload> Lines);
+
+public record BurstOrderPayload(List<OrderPayload> Orders );
 
 public record CustomerCreatePayload(string Name, string Email);

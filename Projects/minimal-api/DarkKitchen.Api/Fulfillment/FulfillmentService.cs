@@ -29,6 +29,12 @@ public class FulfillmentService(
                     .ThenInclude(d => d.Ingredients)
             .FirstAsync(o => o.Id == orderId, ct);
 
+        if (order.Status != OrderStatus.Pending)
+        {
+            Log.Warning("Order {OrderId} is not pending, cannot fulfill", orderId);
+            return order.Status == OrderStatus.Fulfilled ? FulfillmentResult.Fulfilled : FulfillmentResult.Backordered;
+        }
+
         // Calculate total ingredients required
         var ingredientsRequired = order.Lines
             .SelectMany(line => line.Dish.Ingredients.Select(di => new 
@@ -37,8 +43,9 @@ public class FulfillmentService(
             .ToDictionary(g => g.Key, g => g.Sum(x => x.AmountNeeded));
 
         // Get current Stock from db
+        var ingredientIds = ingredientsRequired.Keys.ToList();
         var currentStocks = await db.Ingredients
-            .Where(i => ingredientsRequired.ContainsKey(i.Id))
+            .Where(i => ingredientIds.Contains(i.Id))
             .Select(i => new { i.Id, i.Stock })
             .ToDictionaryAsync(i => i.Id, i => i.Stock, ct);
 
@@ -49,7 +56,7 @@ public class FulfillmentService(
         {
             // Get the actual entities
             var ingredientsToUpdate = await db.Ingredients
-                .Where(i => ingredientsRequired.ContainsKey(i.Id))
+                .Where(i => ingredientIds.Contains(i.Id))
                 .ToListAsync(ct);
         
             foreach (var ingredient in ingredientsToUpdate)

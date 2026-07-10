@@ -7,6 +7,7 @@ using DarkKitchen.Data.Repository;
 using DarkKitchen.Data.Entities;
 using DarkKitchen.Data.Defaults;
 using DarkKitchen.Data;
+using DarkKitchen.Data.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,56 +42,56 @@ app.UseSwaggerUI();
 
 
 // dih menu
-app.MapGet("/dish-menu", async (DarkKitchenDbContext db) => 
-    Results.Ok(await db.Dishes
-        .Where(d => d.Enabled == true)
-        .Select(d => new { d.Name, d.Description, d.OriginCountry, d.Price })
-        .ToListAsync()));
-
-app.MapGet("/dish-menu/by-price", async (DarkKitchenDbContext db) => 
-    Results.Ok(await db.Dishes
-        .Select(d => new { d.Name, d.Description, d.OriginCountry, d.Price })
+app.MapGet("/dish-menu", async (IOrderRepo repo, CancellationToken ct) =>
+{
+    var dishes = await repo.GetEnabledDishesAsync(ct);
+    return Results.Ok(dishes.Select(d => new { d.Name, d.Description, d.OriginCountry, d.Price }));
+});
+       
+app.MapGet("/dish-menu/by-price", async (IOrderRepo repo, CancellationToken ct) =>
+{
+    var dishes = await repo.GetEnabledDishesAsync(ct);
+    return Results.Ok(
+        dishes.Select(d => new { d.Name, d.Description, d.OriginCountry, d.Price })
         .OrderByDescending(d => d.Price)
-        .ToListAsync()));
+    );
+});
 
-app.MapGet("/dish-menu/search/{id:int}", async (int id, DarkKitchenDbContext db) =>
+app.MapGet("/dish-menu/search/{id:int}", async (int id, IOrderRepo repo, CancellationToken ct) =>
 {
-    var dish = await db.Dishes
-        .Where(d => d.Id == id)
-        .Select(d => new { d.Name, d.Description, d.OriginCountry, d.Price, Enabled = d.Enabled.ToString() })
-        .FirstOrDefaultAsync();
+    var dish = await repo.GetDishByIdAsync(id, ct);
     if (dish == null) return Results.NotFound($"No dish found with id '{id}'");
-    return Results.Ok(dish);
+    return Results.Ok(new { dish.Name, dish.Description, dish.OriginCountry, dish.Price, Enabled = dish.Enabled.ToString() });
 });
 
-app.MapGet("/dish-menu/search/{name}", async (string name, DarkKitchenDbContext db) =>
+app.MapGet("/dish-menu/search/{name}", async (string name, IOrderRepo repo, CancellationToken ct) =>
 {
-    var dishes = await db.Dishes
-        .Select(d => new { d.Id, d.Name, d.Description, d.OriginCountry, d.Price, Enabled = d.Enabled.ToString() })
-        .Where(d => d.Name.ToLower().Contains(name.ToLower()))
-        .ToListAsync();
-    if (dishes.Count() == 0) return Results.NotFound($"No dishes found with name containing '{name}'");
-    return Results.Ok(dishes);
+    var dishes = await repo.GetDishesByNameAsync(name, ct);
+    if (dishes.Count == 0) return Results.NotFound($"No dishes found with name containing '{name}'");
+    return Results.Ok(
+        dishes.Select(d => new { d.Id, d.Name, d.Description, d.OriginCountry, d.Price, Enabled = d.Enabled.ToString() })
+    );
 });
 
-app.MapGet("/dish-menu/disabled", async (DarkKitchenDbContext db) =>
+app.MapGet("/dish-menu/disabled", async (IOrderRepo repo, CancellationToken ct) =>
 {
-    var disabledDishes = await db.Dishes
-        .Where(d => d.Enabled == false)
-        .Select(d => new { d.Id, d.Name, d.Description, d.OriginCountry, d.Price })
-        .ToListAsync();
-    if (disabledDishes.Count > 0) return Results.Ok(disabledDishes);
-    return Results.NoContent();
+    var disabledDishes = await repo.GetDisabledDishesAsync(ct);
+    if (disabledDishes.Count <= 0) return Results.NoContent();
+    return Results.Ok(disabledDishes.Select(d => new { d.Id, d.Name, d.Description, d.OriginCountry, d.Price }));
 });
 
-app.MapPost("/dish-menu/toggle-enabled/{id:int}", async (int id, DarkKitchenDbContext db) =>
+app.MapPost("/dish-menu/toggle-enabled/{id:int}", async (int id, IOrderRepo repo, CancellationToken ct) =>
 {
-    var dish = await db.Dishes.FirstOrDefaultAsync(d => d.Id == id);
-    if (dish == null) return Results.NotFound($"No dish found with id '{id}'");
-    dish.Enabled = !dish.Enabled;
-    await db.SaveChangesAsync();
-    Log.Information("Dish {DishId} is now {Enabled}", dish.Id, dish.Enabled);
-    return Results.Ok($"Dish {dish.Name} is now {(dish.Enabled ? "enabled" : "disabled")}");
+    try
+    {
+        var dish = await repo.ToggleDishEnabledAsync(id, ct);
+        return Results.Ok(dish);
+    }
+    catch (DishNotFoundException e)
+    {
+        Log.Warning("Error while toggling Dish with id {id}", e.dishId);
+        return Results.BadRequest("Dish not found");
+    }
 });
 
 

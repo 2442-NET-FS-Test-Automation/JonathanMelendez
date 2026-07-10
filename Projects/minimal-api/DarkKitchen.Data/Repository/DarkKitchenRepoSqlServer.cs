@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
+using DarkKitchen.Data.Defaults;
 using DarkKitchen.Data.Entities;
 using DarkKitchen.Data.Exceptions;
 
 namespace DarkKitchen.Data.Repository;
 
-public class OrderRepoSqlServer(DarkKitchenDbContext db) : IOrderRepo
+public class DarkKitchenRepoSqlServer(DarkKitchenDbContext db) : IDarkKitchenRepo
 {
     private readonly DarkKitchenDbContext _db = db;
     
@@ -50,6 +51,37 @@ public class OrderRepoSqlServer(DarkKitchenDbContext db) : IOrderRepo
         await _db.Orders.AddRangeAsync(orders, ct);
         await _db.SaveChangesAsync(ct);
         Log.Information("Added {qty} orders", orders.Count());
+    }
+
+    // Inventory
+    public async Task<List<Ingredient>> GetAllIngredientsAsync(CancellationToken ct)
+    {
+        return await _db.Ingredients.ToListAsync(ct);
+    }
+    public async Task<Ingredient?> GetIngredientByIdAsync(int id, CancellationToken ct)
+    {
+        return await _db.Ingredients.Where(i => i.Id == id).FirstOrDefaultAsync(ct);
+    }
+    public async Task<List<Ingredient>> GetIngredientsByNameAsync(string searchedName, CancellationToken ct)
+    {
+        return await _db.Ingredients.Where(i => i.Name.ToLower().Contains(searchedName.ToLower())).ToListAsync(ct);
+    }
+    public async Task<List<Ingredient>> GetIngredientsBelowStockAsync(decimal minStock, CancellationToken ct)
+    {
+        return await _db.Ingredients.Where(i => i.Stock < minStock).ToListAsync(ct);
+    }
+    public async Task IngredientsResetStock(CancellationToken ct)
+    {
+        foreach (var ingredient in _db.Ingredients)
+        {
+            if (IngredientDefaults.InitialStocks.TryGetValue(ingredient.Id, out decimal initialStock))
+            {
+                ingredient.Stock = initialStock;
+                Log.Information("Reset ingredient {id} to {stock} stock", ingredient.Id, initialStock);
+            }
+        }
+        Log.Information("Applying reset changes...");
+        await _db.SaveChangesAsync(ct);
     }
 
     // Dishes

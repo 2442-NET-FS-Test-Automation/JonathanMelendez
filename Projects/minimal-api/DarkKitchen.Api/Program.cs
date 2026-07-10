@@ -5,9 +5,10 @@ using Serilog;
 using DarkKitchen.Api.Fulfillment;
 using DarkKitchen.Data.Repository;
 using DarkKitchen.Data.Entities;
-using DarkKitchen.Data.Defaults;
 using DarkKitchen.Data;
 using DarkKitchen.Data.Exceptions;
+
+using DarkKitchen.Data.Defaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,8 +20,7 @@ builder.Services.AddDbContextFactory<DarkKitchenDbContext>(options => options.Us
 
 // Services
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
-builder.Services.AddScoped<IOrderRepo, OrderRepoSqlServer>();
-builder.Services.AddScoped<IInventoryRepo, InventoryRepoSqlServer>();
+builder.Services.AddScoped<IDarkKitchenRepo, DarkKitchenRepoSqlServer>();
 
 // Logger
 Log.Logger = new LoggerConfiguration()
@@ -42,13 +42,13 @@ app.UseSwaggerUI();
 
 
 // dih menu
-app.MapGet("/dish-menu", async (IOrderRepo repo, CancellationToken ct) =>
+app.MapGet("/dish-menu", async (IDarkKitchenRepo repo, CancellationToken ct) =>
 {
     var dishes = await repo.GetEnabledDishesAsync(ct);
     return Results.Ok(dishes.Select(d => new { d.Name, d.Description, d.OriginCountry, d.Price }));
 });
        
-app.MapGet("/dish-menu/by-price", async (IOrderRepo repo, CancellationToken ct) =>
+app.MapGet("/dish-menu/by-price", async (IDarkKitchenRepo repo, CancellationToken ct) =>
 {
     var dishes = await repo.GetEnabledDishesAsync(ct);
     return Results.Ok(
@@ -57,14 +57,14 @@ app.MapGet("/dish-menu/by-price", async (IOrderRepo repo, CancellationToken ct) 
     );
 });
 
-app.MapGet("/dish-menu/search/{id:int}", async (int id, IOrderRepo repo, CancellationToken ct) =>
+app.MapGet("/dish-menu/search/{id:int}", async (int id, IDarkKitchenRepo repo, CancellationToken ct) =>
 {
     var dish = await repo.GetDishByIdAsync(id, ct);
     if (dish == null) return Results.NotFound($"No dish found with id '{id}'");
     return Results.Ok(new { dish.Name, dish.Description, dish.OriginCountry, dish.Price, Enabled = dish.Enabled.ToString() });
 });
 
-app.MapGet("/dish-menu/search/{name}", async (string name, IOrderRepo repo, CancellationToken ct) =>
+app.MapGet("/dish-menu/search/{name}", async (string name, IDarkKitchenRepo repo, CancellationToken ct) =>
 {
     var dishes = await repo.GetDishesByNameAsync(name, ct);
     if (dishes.Count == 0) return Results.NotFound($"No dishes found with name containing '{name}'");
@@ -73,14 +73,14 @@ app.MapGet("/dish-menu/search/{name}", async (string name, IOrderRepo repo, Canc
     );
 });
 
-app.MapGet("/dish-menu/disabled", async (IOrderRepo repo, CancellationToken ct) =>
+app.MapGet("/dish-menu/disabled", async (IDarkKitchenRepo repo, CancellationToken ct) =>
 {
     var disabledDishes = await repo.GetDisabledDishesAsync(ct);
     if (disabledDishes.Count <= 0) return Results.NoContent();
     return Results.Ok(disabledDishes.Select(d => new { d.Id, d.Name, d.Description, d.OriginCountry, d.Price }));
 });
 
-app.MapPost("/dish-menu/toggle-enabled/{id:int}", async (int id, IOrderRepo repo, CancellationToken ct) =>
+app.MapPost("/dish-menu/toggle-enabled/{id:int}", async (int id, IDarkKitchenRepo repo, CancellationToken ct) =>
 {
     try
     {
@@ -96,62 +96,51 @@ app.MapPost("/dish-menu/toggle-enabled/{id:int}", async (int id, IOrderRepo repo
 
 
 // Inventory stuff
-app.MapGet("/inventory", async (DarkKitchenDbContext db) => 
-    Results.Ok(await db.Ingredients
-        .Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.GetAbbreviation()}" })
-        .ToListAsync()));
-
-app.MapGet("/inventory/search/{id:int}", async (int id, DarkKitchenDbContext db) =>
+app.MapGet("/inventory", async (IDarkKitchenRepo repo, CancellationToken ct) =>
 {
-    var ingredient =await db.Ingredients
-        .Where( i => i.Id == id)
-        .Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.ToString()}" })
-        .FirstOrDefaultAsync();
-    if (ingredient == null) return Results.NotFound($"No ingredient found with id '{id}'");
-    return Results.Ok(ingredient);    
+    var inv = await repo.GetAllIngredientsAsync(ct);
+    return Results.Ok(inv.Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.GetAbbreviation()}" }));
 });
 
-app.MapGet("/inventory/search/{name}", async (string name, DarkKitchenDbContext db) =>
+app.MapGet("/inventory/search/{id:int}", async (int id, IDarkKitchenRepo repo, CancellationToken ct) =>
 {
-    var ingredients = await db.Ingredients
-        .Where( i => i.Name.ToLower().Contains(name.ToLower()))
-        .Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.ToString()}" })
-        .ToListAsync();
+    var ing = await repo.GetIngredientByIdAsync(id, ct);
+    if (ing == null) return Results.NotFound($"No ingredient found with id '{id}'");
+    return Results.Ok(new { ing.Name, Stock = $"{ing.Stock} {ing.Unit.ToString()}" });  
+});
+
+app.MapGet("/inventory/search/{name}", async (string name, IDarkKitchenRepo repo, CancellationToken ct) =>
+{
+    var ingredients = await repo.GetIngredientsByNameAsync(name, ct);
     if (ingredients.Count == 0) return Results.NotFound($"No ingredients found with name containing '{name}'");
-    return Results.Ok(ingredients);
+    return Results.Ok(ingredients.Select(i => new { i.Name, Stock = $"{i.Stock} {i.Unit.ToString()}" }));
 });
 
-app.MapGet("/inventory/by-stock", async (DarkKitchenDbContext db) => 
-    Results.Ok(await db.Ingredients
-        .Select(i => new { i.Name, i.Stock, Unit = i.Unit.ToString() })
-        .OrderByDescending(i => i.Stock)
-        .ToListAsync()));
-
-app.MapGet("/inventory/low-stock", async (DarkKitchenDbContext db) => 
-    Results.Ok(await db.Ingredients
-        .Select(i => new { i.Name, i.Stock })
-        .Where(i => i.Stock <= 0.5m)
-        .OrderBy(i => i.Stock)
-        .ToListAsync()));
-
-app.MapPost("/inventory/reset", async (DarkKitchenDbContext db, ILogger<Program> logger) =>
+app.MapGet("/inventory/by-stock", async (IDarkKitchenRepo repo, CancellationToken ct) =>
 {
-    foreach(var ingredient in db.Ingredients)
-    {
-        if (IngredientDefaults.InitialStocks.TryGetValue(ingredient.Id, out decimal initialStock))
-        {
-            ingredient.Stock = initialStock;
-            Log.Information("Reset ingredient {id} to {stock} stock", ingredient.Id, initialStock);
-        }
-    }
-    Log.Information("Applying reset changes...");
-    await db.SaveChangesAsync();
+    var ings = await repo.GetAllIngredientsAsync(ct);
+    return Results.Ok(
+        ings.Select(i => new { i.Name, i.Stock, Unit = i.Unit.ToString() })
+        .OrderByDescending(i => i.Stock)
+    ); 
+});
+
+app.MapGet("/inventory/below-stock/{qty:int}", async (int qty, IDarkKitchenRepo repo, CancellationToken ct) =>
+{
+    var ings = await repo.GetIngredientsBelowStockAsync(qty, ct);
+    if(ings.Count == 0) return Results.NoContent();
+    return Results.Ok(ings.OrderBy(i => i.Stock));
+});
+
+app.MapPost("/inventory/reset", async (IDarkKitchenRepo repo, CancellationToken ct) =>
+{
+    await repo.IngredientsResetStock(ct);
     return Results.Ok("Stock reset");
 });
 
 
 // Orders
-app.MapGet("/orders", async (IOrderRepo repo, CancellationToken ct) => 
+app.MapGet("/orders", async (IDarkKitchenRepo repo, CancellationToken ct) => 
 {
     var orders = await repo.GetAllOrdersAsync(ct);
     return Results.Ok(
@@ -164,7 +153,7 @@ app.MapGet("/orders", async (IOrderRepo repo, CancellationToken ct) =>
     ));
 });
 
-app.MapGet("/orders/{orderId:int}", async (int orderId, IOrderRepo repo, CancellationToken ct) =>
+app.MapGet("/orders/{orderId:int}", async (int orderId, IDarkKitchenRepo repo, CancellationToken ct) =>
 {
     var order = await repo.GetOrderByIdAsync(orderId, ct);
     if (order == null) return Results.NotFound($"Order {orderId} not found");
@@ -176,7 +165,7 @@ app.MapGet("/orders/{orderId:int}", async (int orderId, IOrderRepo repo, Cancell
     });
 });
 
-app.MapGet("/orders/customer/{customerId:int}", async (int customerId, IOrderRepo repo, CancellationToken ct) =>
+app.MapGet("/orders/customer/{customerId:int}", async (int customerId, IDarkKitchenRepo repo, CancellationToken ct) =>
 {
     var orders = await repo.GetOrdersForCustomerAsync(customerId, ct);
     if (orders.Count == 0) return Results.NotFound($"No orders found for customer {customerId}");
@@ -191,7 +180,7 @@ app.MapGet("/orders/customer/{customerId:int}", async (int customerId, IOrderRep
 
 app.MapPost("/orders/single", async (
     OrderPayload payload, 
-    IOrderRepo repo, 
+    IDarkKitchenRepo repo, 
     DarkKitchenDbContext db,
     IFulfillmentService fSvc,
     CancellationToken ct
@@ -224,7 +213,7 @@ app.MapPost("/orders/single", async (
 
 app.MapPost("/orders/burst", async(
     BurstOrderPayload payload, 
-    IOrderRepo repo,
+    IDarkKitchenRepo repo,
     DarkKitchenDbContext db,
     IServiceScopeFactory scopes,
     IHostApplicationLifetime lifetime
@@ -440,7 +429,7 @@ app.MapGet("/reports/fulfillment-rate", async (DarkKitchenDbContext db) =>
 // Benchmarking and tests
 app.MapPost("/benchmark", async (
     BurstOrderPayload payload, 
-    IOrderRepo repo,
+    IDarkKitchenRepo repo,
     IFulfillmentService fs,
     DarkKitchenDbContext db,
     CancellationToken ct

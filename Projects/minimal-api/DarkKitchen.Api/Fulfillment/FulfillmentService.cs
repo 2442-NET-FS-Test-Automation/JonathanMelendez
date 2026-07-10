@@ -17,10 +17,10 @@ public interface IFulfillmentService
 public record BurstResult(int Fulfilled, int Backordered);
 public class FulfillmentService(
     IDbContextFactory<DarkKitchenDbContext> dbF,
-    IOrderRepo repo
+    IDarkKitchenRepo repo
 ) : IFulfillmentService
 {
-    private readonly IOrderRepo _repo = repo;
+    private readonly IDarkKitchenRepo _repo = repo;
     private readonly IDbContextFactory<DarkKitchenDbContext> _dbF = dbF;
     public async Task<FulfillmentResult> FulfillOneAsync(int orderId, CancellationToken ct)
     {

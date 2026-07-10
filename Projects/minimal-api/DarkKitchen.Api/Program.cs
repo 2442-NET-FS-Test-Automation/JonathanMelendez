@@ -211,8 +211,11 @@ app.MapPost("/orders/single", async (
     // We check that every Dish requested actually exists
     foreach (var line in payload.Lines)
     {
-        if (await repo.GetDishByIdAsync(line.DishId, ct) == null) 
-            return Results.BadRequest($"Dish {line.DishId} not found");
+        var dish = await repo.GetDishByIdAsync(line.DishId, ct);
+        if (dish is null) 
+            return Results.NotFound($"Dish {line.DishId} not found");
+        else if (dish.Enabled == false)
+            return Results.BadRequest($"Dish {line.DishId} is disabled");
     }
 
     Order newOrder = orderFactory.CreateOrder("normal", payload.CustomerId, payload.Lines.Select(l => (l.DishId, l.Quantity)));
@@ -247,11 +250,12 @@ app.MapPost("/orders/burst", async(
         .Distinct()
         .ToList();
 
-    var existingDishes = await repo.GetDishesByIdsAsync(dishIds, ct);
+    var enabledDishes = await repo.GetEnabledDishesAsync(ct);
+    var existingDishes = enabledDishes.Where(d => dishIds.Contains(d.Id));
 
     var missingDishes = dishIds.Except(existingDishes.Select(d => d.Id)).ToList();
     if (missingDishes.Count > 0)
-        return Results.BadRequest($"Dishes not found: {string.Join(", ", missingDishes)}");
+        return Results.BadRequest($"Dishes not found or disabled: {string.Join(", ", missingDishes)}");
 
     // Create orders
     var orders = new List<Order>();

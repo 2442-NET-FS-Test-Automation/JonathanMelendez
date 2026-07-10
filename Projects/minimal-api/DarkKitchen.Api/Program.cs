@@ -14,13 +14,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // DB Stuff
 var conn_string = "Server=localhost,1433;Database=DarkKitchenDB;User Id=sa;Password=mssql65.;TrustServerCertificate=true";
-builder.Services.AddDbContext<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string),
-    ServiceLifetime.Scoped, ServiceLifetime.Singleton);
 builder.Services.AddDbContextFactory<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string));
 
 // Services
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
 builder.Services.AddScoped<IDarkKitchenRepo, DarkKitchenRepoSqlServer>();
+builder.Services.AddScoped<IReportsRepo, ReportsRepoSqlServer>();
 
 // Logger
 Log.Logger = new LoggerConfiguration()
@@ -322,55 +321,37 @@ app.MapDelete("/customers", async (int customerId, IDarkKitchenRepo repo, Cancel
 });
 
 // Reports
-app.MapGet("/reports/dishes/ranking", async (DarkKitchenDbContext db) =>
-    Results.Ok(await db.FulfillmentEvents
-        .Where(f => f.Result == FulfillmentResult.Fulfilled)
-        .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
-        .GroupBy(l => l.DishId)
-        .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
-        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {d.Name, UnitsSold = g.Units})
-        .OrderByDescending(x => x.UnitsSold)
-        .ToListAsync()));
+app.MapGet("/reports/dishes/ranking", async (IReportsRepo repo, CancellationToken ct) => Results.Ok(await repo.GetDishesRankedReport(ct)));
 
-app.MapGet("/reports/dishes/ranking/{rank:int}", async (int rank, DarkKitchenDbContext db) =>
+app.MapGet("/reports/dishes/ranking/{rank:int}", async (int rank, IReportsRepo repo, CancellationToken ct) =>
 {
-    var dish = await db.FulfillmentEvents
-        .Where(f => f.Result == FulfillmentResult.Fulfilled)
-        .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
-        .GroupBy(l => l.DishId)
-        .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
-        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {d.Name, UnitsSold = g.Units})
-        .OrderByDescending(x => x.UnitsSold)
-        .Skip(rank-1)
+    if (rank == 0) return Results.NotFound($"Rank {rank} not in range");
+    var rankedDishes = await repo.GetDishesRankedReport(ct);
+
+    var dish = rankedDishes
+        .Skip(rank - 1)
         .Take(1)
-        .FirstAsync();
-    
+        .FirstOrDefault();
+
     if (dish is null) return Results.NotFound($"Rank {rank} not in range");
     return Results.Ok(dish);
 });
 
-app.MapGet("reports/dishes/ranking/{dishName}", async (string dishName, DarkKitchenDbContext db) =>
+app.MapGet("reports/dishes/ranking/{dishName}", async (string dishName, IReportsRepo repo, CancellationToken ct) =>
 {
-    var dishesByRank = await db.FulfillmentEvents
-        .Where(f => f.Result == FulfillmentResult.Fulfilled)
-        .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
-        .GroupBy(l => l.DishId)
-        .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
-        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {d.Name, UnitsSold = g.Units})
-        .OrderByDescending(x => x.UnitsSold)
-        .ToListAsync();
+    var dishesByRank = await repo.GetDishesRankedReport(ct);
 
     var rankedDishes = 
         dishesByRank.Select((x, index) => new 
             {
                 Rank = index + 1,
                 x.Name, 
-                x.UnitsSold 
+                x.Units
             })
             .OrderBy(o => o.Name)
             .ToList();
 
-    var target = new { Rank = 0, Name = dishName, UnitsSold = 0 };
+    var target = new { Rank = 0, Name = dishName, Units = 0 };
     
     int res = rankedDishes.BinarySearch(target, Comparer<dynamic>.Create((a, b) =>
         {
@@ -379,37 +360,23 @@ app.MapGet("reports/dishes/ranking/{dishName}", async (string dishName, DarkKitc
             return string.Compare(nameA, nameB, StringComparison.OrdinalIgnoreCase);
         }));
     
-    if (res < 0) return Results.NotFound($"");
+    if (res < 0) return Results.NotFound($"Dish {dishName} not found");
     return Results.Ok(rankedDishes[res].Rank);
 });
 
-app.MapGet("/reports/dishes/ranking/top-{qty:int}", async (int qty, DarkKitchenDbContext db) =>
-    await db.FulfillmentEvents
-        .Where(f => f.Result == FulfillmentResult.Fulfilled)
-        .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
-        .GroupBy(l => l.DishId)
-        .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
-        .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new {d.Name, UnitsSold = g.Units})
-        .OrderByDescending(x => x.UnitsSold)
-        .Take(qty)
-        .ToListAsync());
+app.MapGet("/reports/dishes/ranking/top-{qty:int}", async (int qty, IReportsRepo repo, CancellationToken ct) =>
+{
+    var rankedDishes = await repo.GetDishesRankedReport(ct);
+    return rankedDishes.Take(qty);
+});
 
-app.MapGet("/reports/top-customers", async (DarkKitchenDbContext db) =>
-    Results.Ok(await db.FulfillmentEvents
-        .Where(f => f.Result == FulfillmentResult.Fulfilled)
-        .Join(db.Orders, e => e.OrderId, o => o.Id, (e, o) => o)
-        .GroupBy(o => o.CustomerId)
-        .Select(g => new { CustomerId = g.Key, Orders = g.Count() })
-        .Join(db.Customers, g => g.CustomerId, c => c.Id, (g, c) => new { c.Name, g.Orders })
-        .OrderByDescending(x => x.Orders)
-        .Take(3)
-        .ToListAsync()));
+app.MapGet("/reports/top-customers/top-{qty:int}", async (int qty, IReportsRepo repo, CancellationToken ct) =>
+{
+    var rankedCustomers = await repo.GetCustomersRankedReport(ct);
+    return rankedCustomers.Take(qty);
+});
 
-app.MapGet("/reports/fulfillment-rate", async (DarkKitchenDbContext db) =>
-    Results.Ok(await db.FulfillmentEvents
-        .GroupBy(g => g.Result)
-        .Select(g => new { Result = g.Key.ToString(), Quantity = g.Count()})
-        .ToListAsync()));
+app.MapGet("/reports/fulfillment-rate", async (IReportsRepo repo, CancellationToken ct) => Results.Ok(await repo.GetFulfillmentRateReport(ct)));
 
 
 // Benchmarking and tests

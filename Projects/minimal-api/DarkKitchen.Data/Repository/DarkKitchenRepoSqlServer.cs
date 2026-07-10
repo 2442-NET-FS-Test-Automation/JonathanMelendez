@@ -88,7 +88,7 @@ public class DarkKitchenRepoSqlServer(IDbContextFactory<DarkKitchenDbContext> db
     {
         await using var db = await _dbF.CreateDbContextAsync(ct);
 
-        return await db.Ingredients.Where(i => i.Stock < minStock).ToListAsync(ct);
+        return await db.Ingredients.Where(i => i.Stock <= minStock).ToListAsync(ct);
     }
     public async Task IngredientsResetStock(CancellationToken ct)
     {
@@ -118,6 +118,12 @@ public class DarkKitchenRepoSqlServer(IDbContextFactory<DarkKitchenDbContext> db
         await using var db = await _dbF.CreateDbContextAsync(ct);
 
         return await db.Dishes.Where(d => d.Id == dishId).FirstOrDefaultAsync(ct);
+    }
+    public async Task<List<Dish>> GetDishesByIdsAsync(IEnumerable<int> dishesIds, CancellationToken ct)
+    {
+        await using var db = await _dbF.CreateDbContextAsync(ct);
+
+        return await db.Dishes.Where(d => dishesIds.Contains(d.Id)).ToListAsync(ct);
     }
     public async Task<List<Dish>> GetDishesByNameAsync(string searchedName, CancellationToken ct)
     {
@@ -160,6 +166,12 @@ public class DarkKitchenRepoSqlServer(IDbContextFactory<DarkKitchenDbContext> db
         await using var db = await _dbF.CreateDbContextAsync(ct);
 
         return await db.Customers.Where(c => c.Id == customerId).FirstOrDefaultAsync(ct);
+    }
+    public async Task<List<Customer>> GetCustomersByIdsAsync(IEnumerable<int> customersIds, CancellationToken ct)
+    {
+        await using var db = await _dbF.CreateDbContextAsync(ct);
+
+        return await db.Customers.Where(c => customersIds.Contains(c.Id)).ToListAsync(ct);
     }
     public async Task<List<Customer>> GetCustomerByNameAsync(string searchedName, CancellationToken ct)
     {

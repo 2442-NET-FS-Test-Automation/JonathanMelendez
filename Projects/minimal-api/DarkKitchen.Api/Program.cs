@@ -180,20 +180,19 @@ app.MapGet("/orders/customer/{customerId:int}", async (int customerId, IDarkKitc
 
 app.MapPost("/orders/single", async (
     OrderPayload payload, 
-    IDarkKitchenRepo repo, 
-    DarkKitchenDbContext db,
+    IDarkKitchenRepo repo,
     IFulfillmentService fSvc,
     CancellationToken ct
 ) => {
     // We check that the customer exists
-    if (await db.Customers.FirstOrDefaultAsync(c => c.Id == payload.CustomerId, ct) == null)
+    if (await repo.GetCustomerByIdAsync(payload.CustomerId, ct) == null)
         return Results.BadRequest($"Customer {payload.CustomerId} not found");
 
     // We check that every Dish requested actually exists
     foreach (var line in payload.Lines)
     {
-        var dish = await db.Dishes.FirstOrDefaultAsync(d => d.Id == line.DishId, ct);
-        if (dish == null) return Results.BadRequest($"Dish {line.DishId} not found");
+        if (await repo.GetDishByIdAsync(line.DishId, ct) == null) 
+            return Results.BadRequest($"Dish {line.DishId} not found");
     }
 
     Order newOrder = new()
@@ -214,7 +213,6 @@ app.MapPost("/orders/single", async (
 app.MapPost("/orders/burst", async(
     BurstOrderPayload payload, 
     IDarkKitchenRepo repo,
-    DarkKitchenDbContext db,
     IServiceScopeFactory scopes,
     IHostApplicationLifetime lifetime
 ) => {
@@ -222,30 +220,24 @@ app.MapPost("/orders/burst", async(
 
     // Verify all customers are valid
     var customerIds = payload.Orders.Select(o => o.CustomerId).ToList();
-    var existingCustomers = await db.Customers
-        .Where(c => customerIds.Contains(c.Id))
-        .Select(c => c.Id)
-        .ToListAsync(ct);
+    var existingCustomers = await repo.GetCustomersByIdsAsync(customerIds, ct);
 
-    var missingCustomers = customerIds.Except(existingCustomers).ToList();
+    var missingCustomers = customerIds.Except(existingCustomers.Select(c => c.Id)).ToList();
     if (missingCustomers.Count > 0)
         return Results.BadRequest($"Customers not found: {string.Join(", ", missingCustomers)}");
 
-    // verify all dishes are valid
+    // Verify all dishes are valid
     var dishIds = payload.Orders
         .SelectMany(o => o.Lines.Select(l => l.DishId))
         .Distinct()
         .ToList();
 
-    var existingDishes = await db.Dishes
-        .Where(d => dishIds.Contains(d.Id))
-        .Select(d => d.Id)
-        .ToListAsync(ct);
+    var existingDishes = await repo.GetDishesByIdsAsync(dishIds, ct);
 
-    var missingDishes = dishIds.Except(existingDishes).ToList();
+    var missingDishes = dishIds.Except(existingDishes.Select(d => d.Id)).ToList();
     if (missingDishes.Count > 0)
         return Results.BadRequest($"Dishes not found: {string.Join(", ", missingDishes)}");
-    
+
     // Create orders
     var orders = payload.Orders.Select(o => new Order
         {
@@ -425,46 +417,30 @@ app.MapPost("/benchmark", async (
     BurstOrderPayload payload, 
     IDarkKitchenRepo repo,
     IFulfillmentService fs,
-    DarkKitchenDbContext db,
     CancellationToken ct
 ) => {
     // Verify all customers are valid
     var customerIds = payload.Orders.Select(o => o.CustomerId).ToList();
-    var existingCustomers = await db.Customers
-        .Where(c => customerIds.Contains(c.Id))
-        .Select(c => c.Id)
-        .ToListAsync(ct);
+    var existingCustomers = await repo.GetCustomersByIdsAsync(customerIds, ct);
 
-    var missingCustomers = customerIds.Except(existingCustomers).ToList();
+    var missingCustomers = customerIds.Except(existingCustomers.Select(c => c.Id)).ToList();
     if (missingCustomers.Count > 0)
         return Results.BadRequest($"Customers not found: {string.Join(", ", missingCustomers)}");
 
-    // verify all dishes are valid
+    // Verify all dishes are valid
     var dishIds = payload.Orders
         .SelectMany(o => o.Lines.Select(l => l.DishId))
         .Distinct()
         .ToList();
 
-    var existingDishes = await db.Dishes
-        .Where(d => dishIds.Contains(d.Id))
-        .Select(d => d.Id)
-        .ToListAsync(ct);
+    var existingDishes = await repo.GetDishesByIdsAsync(dishIds, ct);
 
-    var missingDishes = dishIds.Except(existingDishes).ToList();
+    var missingDishes = dishIds.Except(existingDishes.Select(d => d.Id)).ToList();
     if (missingDishes.Count > 0)
         return Results.BadRequest($"Dishes not found: {string.Join(", ", missingDishes)}");
-    
-    // Reset Stocks
-    foreach(var ingredient in db.Ingredients)
-    {
-        if (IngredientDefaults.InitialStocks.TryGetValue(ingredient.Id, out decimal initialStock))
-        {
-            ingredient.Stock = initialStock;
-            Log.Information("Reset ingredient {id} to {stock} stock", ingredient.Id, initialStock);
-        }
-    }
-    Log.Information("Applying reset changes...");
-    await db.SaveChangesAsync();
+
+    // Reset stocks
+    await repo.IngredientsResetStock(ct);
 
     // Create first batch for sequential
     var ordersS = payload.Orders.Select(o => new Order
@@ -488,16 +464,7 @@ app.MapPost("/benchmark", async (
     sw1.Stop();
 
     // Reset stocks
-    foreach(var ingredient in db.Ingredients)
-    {
-        if (IngredientDefaults.InitialStocks.TryGetValue(ingredient.Id, out decimal initialStock))
-        {
-            ingredient.Stock = initialStock;
-            Log.Information("Reset ingredient {id} to {stock} stock", ingredient.Id, initialStock);
-        }
-    }
-    Log.Information("Applying reset changes...");
-    await db.SaveChangesAsync();
+    await repo.IngredientsResetStock(ct);
 
     // Second batch for Parallel
     var ordersP = payload.Orders.Select(o => new Order
@@ -530,9 +497,9 @@ app.MapPost("/benchmark", async (
     });
 });
 
-app.MapGet("/verify/no-oversell", async (DarkKitchenDbContext db, CancellationToken ct) =>
+app.MapGet("/verify/no-oversell", async (IDarkKitchenRepo repo, CancellationToken ct) =>
 {
-    var oversold = await db.Ingredients.Where(i => i.Stock < 0).ToListAsync(ct);
+    var oversold = await repo.GetIngredientsBelowStockAsync(0, ct);
     if (oversold.Count > 0) return Results.Ok(oversold);
     return Results.NoContent();
 });

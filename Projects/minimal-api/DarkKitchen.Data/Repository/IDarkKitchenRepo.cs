@@ -7,6 +7,7 @@ public interface IDarkKitchenRepo
     // Dishes
     Task<List<Dish>> GetAllDishesAsync(CancellationToken ct);
     Task<Dish?> GetDishByIdAsync(int dishId, CancellationToken ct);
+    Task<List<Dish>> GetDishesByIdsAsync(IEnumerable<int> dishesIds, CancellationToken ct);
     Task<List<Dish>> GetDishesByNameAsync(string searchedName, CancellationToken ct);
     Task<List<Dish>> GetEnabledDishesAsync(CancellationToken ct);
     Task<List<Dish>> GetDisabledDishesAsync(CancellationToken ct);
@@ -30,6 +31,7 @@ public interface IDarkKitchenRepo
     // Customers
     Task<List<Customer>> GetAllCustomersAsync(CancellationToken ct);
     Task<Customer?> GetCustomerByIdAsync(int customerId, CancellationToken ct);
+    Task<List<Customer>> GetCustomersByIdsAsync(IEnumerable<int> customersIds, CancellationToken ct);
     Task<List<Customer>> GetCustomerByNameAsync(string searchedName, CancellationToken ct);
     Task<Customer> AddCustomerAsync(Customer customer, CancellationToken ct);
     Task DeleteCustomerByIdAsync(int customerId, CancellationToken ct);

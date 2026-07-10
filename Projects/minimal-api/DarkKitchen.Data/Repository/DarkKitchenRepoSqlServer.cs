@@ -88,7 +88,7 @@ public class DarkKitchenRepoSqlServer(IDbContextFactory<DarkKitchenDbContext> db
     {
         await using var db = await _dbF.CreateDbContextAsync(ct);
 
-        return await db.Ingredients.Where(i => i.Stock <= minStock).ToListAsync(ct);
+        return await db.Ingredients.Where(i => i.Stock < minStock).ToListAsync(ct);
     }
     public async Task IngredientsResetStock(CancellationToken ct)
     {

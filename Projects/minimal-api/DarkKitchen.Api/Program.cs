@@ -14,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 // DB Stuff
 var conn_string = "Server=localhost,1433;Database=DarkKitchenDB;User Id=sa;Password=mssql65.;TrustServerCertificate=true";
 builder.Services.AddDbContextFactory<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string));
+builder.Services.AddDbContext<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string),
+    ServiceLifetime.Scoped, ServiceLifetime.Singleton);
 
 // Services
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
@@ -213,10 +215,9 @@ app.MapPost("/orders/burst", async(
     IDarkKitchenRepo repo,
     OrderFactory orderFactory,
     IServiceScopeFactory scopes,
-    IHostApplicationLifetime lifetime
+    IHostApplicationLifetime lifetime,
+    CancellationToken ct
 ) => {
-    var ct = lifetime.ApplicationStopping;
-
     // Verify all customers are valid
     var customerIds = payload.Orders.Select(o => o.CustomerId).ToList();
     var existingCustomers = await repo.GetCustomersByIdsAsync(customerIds, ct);
@@ -238,7 +239,11 @@ app.MapPost("/orders/burst", async(
         return Results.BadRequest($"Dishes not found: {string.Join(", ", missingDishes)}");
 
     // Create orders
-    var orders = payload.Orders.Select(o => orderFactory.CreateOrder("normal", o.CustomerId, o.Lines.Select(l => (l.DishId, l.Quantity))));
+    var orders = new List<Order>();
+    foreach (var o in payload.Orders)
+    {
+        orders.Add(orderFactory.CreateOrder("normal", o.CustomerId, o.Lines.Select(l => (l.DishId, l.Quantity))));
+    }
 
     // Save to generate IDs and persist the orders
     await repo.AddOrdersAsync(orders, ct);

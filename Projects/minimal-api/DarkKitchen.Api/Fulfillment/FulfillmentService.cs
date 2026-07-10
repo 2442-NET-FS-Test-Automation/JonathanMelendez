@@ -3,8 +3,6 @@ using Serilog;
 
 using DarkKitchen.Data;
 using DarkKitchen.Data.Entities;
-using DarkKitchen.Data.Repository;
-
 
 namespace DarkKitchen.Api.Fulfillment;
 
@@ -16,18 +14,20 @@ public interface IFulfillmentService
 
 public record BurstResult(int Fulfilled, int Backordered);
 public class FulfillmentService(
-    IDbContextFactory<DarkKitchenDbContext> dbF,
-    IDarkKitchenRepo repo
+    IDbContextFactory<DarkKitchenDbContext> dbF
 ) : IFulfillmentService
 {
-    private readonly IDarkKitchenRepo _repo = repo;
     private readonly IDbContextFactory<DarkKitchenDbContext> _dbF = dbF;
     public async Task<FulfillmentResult> FulfillOneAsync(int orderId, CancellationToken ct)
     {
         await using var db = await _dbF.CreateDbContextAsync(ct);
 
         // Get order from db
-        var order = await _repo.GetOrderByIdAsync(orderId, ct) ?? throw new Exception();
+        var order = await db.Orders
+            .Include(o => o.Lines)
+                .ThenInclude(o => o.Dish)
+                    .ThenInclude(d => d.Ingredients)
+            .FirstAsync(o => o.Id == orderId, ct);
 
         if (order.Status != OrderStatus.Pending)
         {
@@ -53,7 +53,7 @@ public class FulfillmentService(
         }
         db.ChangeTracker.Clear();
 
-        var freshOrder = await _repo.GetOrderByIdAsync(orderId, ct) ?? throw new Exception();
+        var freshOrder = await db.Orders.Where(o => o.Id == orderId).FirstAsync(ct);
 
         freshOrder.Status = OrderStatus.Backordered;
         db.FulfillmentEvents.Add(new FulfillmentEvent { OrderId = orderId, Result = FulfillmentResult.Backordered});
@@ -70,7 +70,7 @@ public class FulfillmentService(
 
         await using (var db = await _dbF.CreateDbContextAsync(ct))
         {   // Look in our db, grab every order that appears in our idList
-            orders = await _repo.GetOrdersByIdsAsync(idList, ct);
+            orders = await db.Orders.Where(o => idList.Contains(o.Id)).ToListAsync(ct);
         }
         
         var planned = OrderByPriority(orders);
@@ -128,7 +128,6 @@ public class FulfillmentService(
                     }
                 }
             }
-            ct.ThrowIfCancellationRequested();
         }
     }
 

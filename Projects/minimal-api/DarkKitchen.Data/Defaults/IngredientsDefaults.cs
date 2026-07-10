@@ -10,7 +10,7 @@ public static class IngredientDefaults
         { 5, 20 },   // Butter
         { 6, 20 },   // Sugar
         { 7, 75 },  // Condensed Milk
-        { 8, 150 },  // Egg
+        { 8, 200 },  // Egg
         { 9, 15 },   // Flour
         { 10, 15 },  // Chicken
         { 11, 20 },  // Cheese

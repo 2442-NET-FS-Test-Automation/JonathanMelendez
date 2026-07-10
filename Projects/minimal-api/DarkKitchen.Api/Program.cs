@@ -251,7 +251,7 @@ app.MapPost("/orders/burst", async(
     var orderIds = orders.Select(o => o.Id).ToList();
     Log.Information("Created {OrderCount} orders: {OrderIds}", orderIds.Count, string.Join(", ", orderIds));
 
-    _ = Task.Run( async () => // assigning the task result to a discard runs this as a background task
+    var burstTask = Task.Run( async () => // assigning the task result to a discard runs this as a background task
     {
         try
         {
@@ -265,6 +265,14 @@ app.MapPost("/orders/burst", async(
             Log.Error(e, "Burst fulfillment failed");
         }
     }, ct);
+
+    lifetime.ApplicationStopping.Register(() =>
+    {
+        Log.Information("Shutting down, waiting for burst to finish...");
+        var completed = burstTask.Wait(TimeSpan.FromSeconds(30));
+        if (!completed)
+            Log.Warning("Burst did not complete within timeout, continuing shutdown.");
+    });
 
     return Results.Accepted();
 });

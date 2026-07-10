@@ -86,24 +86,27 @@ public class FulfillmentService(
     }
     public async Task<bool> SaveWithRetryAsync(
         DarkKitchenDbContext db, 
-        IReadOnlyDictionary<int, decimal> ingredientsRequired, CancellationToken ct
+        IReadOnlyDictionary<int, decimal> ingredientsRequired, 
+        CancellationToken ct
     )
     {
         var ingredientIds = ingredientsRequired.Keys.ToList();
-        // Get the actual entities
-        var ingredientsToUpdate = await db.Ingredients
-            .Where(i => ingredientIds.Contains(i.Id))
-            .ToListAsync(ct);
-        
-        foreach (var ingredient in ingredientsToUpdate)
-        {
-            if (ingredient.Stock >= ingredientsRequired[ingredient.Id])
-                ingredient.Stock -= ingredientsRequired[ingredient.Id];
-            else return false;
-        }
+
         while (true) { // Keep trying until the stock gets dried or some other thing fail
             try
             {
+                // Get the actual entities
+                var ingredientsToUpdate = await db.Ingredients
+                    .Where(i => ingredientIds.Contains(i.Id))
+                    .ToListAsync(ct);
+
+                foreach (var ingredient in ingredientsToUpdate)
+                {
+                    if (ingredient.Stock >= ingredientsRequired[ingredient.Id])
+                        ingredient.Stock -= ingredientsRequired[ingredient.Id];
+                    else return false;
+                }
+
                 await db.SaveChangesAsync(ct);
                 return true;
             }
@@ -112,20 +115,7 @@ public class FulfillmentService(
                 Log.Warning("Attempting save retry");
                 foreach (var entry in e.Entries)
                 {
-                    var current = await entry.GetDatabaseValuesAsync(ct);
-                    if (current is null) return false;
-
-                    entry.OriginalValues.SetValues(current);    
-                    if (entry.Entity is Ingredient ing)
-                    {
-                        // Grab the current totals
-                        decimal freshValue = current.GetValue<decimal>(nameof(Ingredient.Stock));
-                        decimal desiredAmount = ingredientsRequired[ing.Id];
-
-                        // Re-check on the fresh stock
-                        if (freshValue < desiredAmount) return false;
-                        ing.Stock = freshValue - desiredAmount;
-                    }
+                    await entry.ReloadAsync(ct);
                 }
             }
         }

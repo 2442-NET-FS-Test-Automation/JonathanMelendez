@@ -284,55 +284,49 @@ app.MapPost("/orders/burst", async(
 
 
 // Customers
-app.MapGet("/customers", async (DarkKitchenDbContext db) => {
-    var customers = await db.Customers
-        .Select(c => new { c.Id, c.Name, c.Email })
-        .ToListAsync();
-    return Results.Ok(customers);
-});
-
-app.MapGet("/customers/{customerId:int}", async (int customerId, DarkKitchenDbContext db) => {
-    var customer = await db.Customers
-        .Where(c => c.Id == customerId)
-        .Select(c => new { c.Id, c.Name, c.Email })
-        .FirstOrDefaultAsync();
-    if (customer == null) return Results.NotFound($"Customer {customerId} not found");
-    return Results.Ok(customer);
-});
-
-app.MapGet("/customers/search/{name}", async (string name, DarkKitchenDbContext db) => {
-    var customers = await db.Customers
-        .Where(c => c.Name.ToLower().Contains(name.ToLower()))
-        .Select(c => new { c.Id, c.Name, c.Email })
-        .ToListAsync();
-    if (customers.Count == 0) return Results.NotFound($"No customers found with name containing '{name}'");
-    return Results.Ok(customers);
-});
-
-app.MapPost("/customers", async (CustomerCreatePayload payload, DarkKitchenDbContext db) =>
+app.MapGet("/customers", async (IDarkKitchenRepo repo, CancellationToken ct) => 
 {
-    var customer = new Customer
+    var customers = await repo.GetAllCustomersAsync(ct);
+    return Results.Ok(customers.Select(c => new { c.Id, c.Name, c.Email }));
+});
+
+app.MapGet("/customers/{customerId:int}", async (int customerId, IDarkKitchenRepo repo, CancellationToken ct) => 
+{
+    var customer = await repo.GetCustomerByIdAsync(customerId, ct);
+
+    if (customer is null) return Results.NotFound($"Customer {customerId} not found");
+    return Results.Ok(new { customer.Id, customer.Name, customer.Email });
+});
+
+app.MapGet("/customers/search/{name}", async (string name, IDarkKitchenRepo repo, CancellationToken ct) => 
+{
+    var customers = await repo.GetCustomerByNameAsync(name, ct);
+    if (customers.Count == 0) return Results.NotFound($"No customers found with name containing '{name}'");
+    return Results.Ok(customers.Select(c => new { c.Id, c.Name, c.Email }));
+});
+
+app.MapPost("/customers", async (CustomerCreatePayload payload, IDarkKitchenRepo repo, CancellationToken ct) =>
+{
+    var customer = await repo.AddCustomerAsync(new Customer
     {
         Name = payload.Name,
         Email = payload.Email
-    };
-
-    db.Customers.Add(customer);
-    await db.SaveChangesAsync();
+    }, ct);
     Log.Information("Created customer {CustomerId} with name {CustomerName}", customer.Id, customer.Name);
     return Results.Created($"/customers/{customer.Id}", customer);
 });
 
-app.MapDelete("/customers", async (int customerId, DarkKitchenDbContext db) =>
+app.MapDelete("/customers", async (int customerId, IDarkKitchenRepo repo, CancellationToken ct) =>
 {
-    var customer = await db.Customers.Where(c => c.Id == customerId).FirstAsync();
-    
-    if (customer is null) return Results.NotFound("Customer with id {customer.Id} not found");
-    
-    db.Customers.Remove(customer);
-    db.SaveChanges();
-
-    return Results.Ok($"Customer {customer.Name} with id {customer.Id} was deleted");
+    try
+    {
+        await repo.DeleteCustomerByIdAsync(customerId, ct);
+        return Results.Ok($"Customer with id {customerId} was deleted");
+    }
+    catch
+    {
+        return Results.NotFound("Customer with id {customer.Id} not found");
+    }
 });
 
 // Reports

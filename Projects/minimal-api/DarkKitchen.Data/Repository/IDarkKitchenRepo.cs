@@ -27,5 +27,10 @@ public interface IDarkKitchenRepo
     Task AddOrderAsync(Order order, CancellationToken ct);
     Task AddOrdersAsync(IEnumerable<Order> orders, CancellationToken ct);
 
-    
+    // Customers
+    Task<List<Customer>> GetAllCustomersAsync(CancellationToken ct);
+    Task<Customer?> GetCustomerByIdAsync(int customerId, CancellationToken ct);
+    Task<List<Customer>> GetCustomerByNameAsync(string searchedName, CancellationToken ct);
+    Task<Customer> AddCustomerAsync(Customer customer, CancellationToken ct);
+    Task DeleteCustomerByIdAsync(int customerId, CancellationToken ct);
 }

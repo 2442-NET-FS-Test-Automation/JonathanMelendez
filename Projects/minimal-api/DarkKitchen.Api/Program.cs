@@ -4,11 +4,10 @@ using Serilog;
 
 using DarkKitchen.Api.Fulfillment;
 using DarkKitchen.Data.Repository;
+using DarkKitchen.Data.Exceptions;
+using DarkKitchen.Data.Factories;
 using DarkKitchen.Data.Entities;
 using DarkKitchen.Data;
-using DarkKitchen.Data.Exceptions;
-
-using DarkKitchen.Data.Defaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +19,10 @@ builder.Services.AddDbContextFactory<DarkKitchenDbContext>(options => options.Us
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
 builder.Services.AddScoped<IDarkKitchenRepo, DarkKitchenRepoSqlServer>();
 builder.Services.AddScoped<IReportsRepo, ReportsRepoSqlServer>();
+
+builder.Services.AddScoped<CustomerFactory>();
+builder.Services.AddScoped<OrderFactory>();
+
 
 // Logger
 Log.Logger = new LoggerConfiguration()
@@ -180,6 +183,7 @@ app.MapGet("/orders/customer/{customerId:int}", async (int customerId, IDarkKitc
 app.MapPost("/orders/single", async (
     OrderPayload payload, 
     IDarkKitchenRepo repo,
+    OrderFactory orderFactory,
     IFulfillmentService fSvc,
     CancellationToken ct
 ) => {
@@ -194,12 +198,7 @@ app.MapPost("/orders/single", async (
             return Results.BadRequest($"Dish {line.DishId} not found");
     }
 
-    Order newOrder = new()
-    {
-        CustomerId = payload.CustomerId,
-        Status = OrderStatus.Pending,
-        Lines = payload.Lines.Select(l => new OrderLine { DishId = l.DishId, Quantity = l.Quantity }).ToList()
-    };
+    Order newOrder = orderFactory.CreateOrder("normal", payload.CustomerId, payload.Lines.Select(l => (l.DishId, l.Quantity)));
 
     await repo.AddOrderAsync(newOrder, ct);
     Log.Information("Created order {OrderId} for customer {CustomerId}", newOrder.Id, newOrder.CustomerId);
@@ -212,6 +211,7 @@ app.MapPost("/orders/single", async (
 app.MapPost("/orders/burst", async(
     BurstOrderPayload payload, 
     IDarkKitchenRepo repo,
+    OrderFactory orderFactory,
     IServiceScopeFactory scopes,
     IHostApplicationLifetime lifetime
 ) => {
@@ -238,16 +238,7 @@ app.MapPost("/orders/burst", async(
         return Results.BadRequest($"Dishes not found: {string.Join(", ", missingDishes)}");
 
     // Create orders
-    var orders = payload.Orders.Select(o => new Order
-        {
-            CustomerId = o.CustomerId,
-            Status = OrderStatus.Pending,
-            Lines = o.Lines.Select(l => new OrderLine
-            {
-                DishId = l.DishId,
-                Quantity = l.Quantity
-            }).ToList()
-        }).ToList();
+    var orders = payload.Orders.Select(o => orderFactory.CreateOrder("normal", o.CustomerId, o.Lines.Select(l => (l.DishId, l.Quantity))));
 
     // Save to generate IDs and persist the orders
     await repo.AddOrdersAsync(orders, ct);
@@ -296,13 +287,14 @@ app.MapGet("/customers/search/{name}", async (string name, IDarkKitchenRepo repo
     return Results.Ok(customers.Select(c => new { c.Id, c.Name, c.Email }));
 });
 
-app.MapPost("/customers", async (CustomerCreatePayload payload, IDarkKitchenRepo repo, CancellationToken ct) =>
-{
-    var customer = await repo.AddCustomerAsync(new Customer
-    {
-        Name = payload.Name,
-        Email = payload.Email
-    }, ct);
+app.MapPost("/customers", async (
+    CustomerCreatePayload payload, 
+    IDarkKitchenRepo repo,
+    CustomerFactory customerFactory,
+    CancellationToken ct
+) => {
+    var customer = await repo.AddCustomerAsync(customerFactory.CreateCustomer(payload.Name, payload.Email), ct);
+
     Log.Information("Created customer {CustomerId} with name {CustomerName}", customer.Id, customer.Name);
     return Results.Created($"/customers/{customer.Id}", customer);
 });
@@ -342,8 +334,7 @@ app.MapGet("reports/dishes/ranking/{dishName}", async (string dishName, IReports
     var dishesByRank = await repo.GetDishesRankedReport(ct);
 
     var rankedDishes = 
-        dishesByRank.Select((x, index) => new 
-            {
+        dishesByRank.Select((x, index) => new {
                 Rank = index + 1,
                 x.Name, 
                 x.Units
@@ -383,6 +374,7 @@ app.MapGet("/reports/fulfillment-rate", async (IReportsRepo repo, CancellationTo
 app.MapPost("/benchmark", async (
     BurstOrderPayload payload, 
     IDarkKitchenRepo repo,
+    OrderFactory orderFactory,
     IFulfillmentService fs,
     CancellationToken ct
 ) => {
@@ -410,16 +402,7 @@ app.MapPost("/benchmark", async (
     await repo.IngredientsResetStock(ct);
 
     // Create first batch for sequential
-    var ordersS = payload.Orders.Select(o => new Order
-        {
-            CustomerId = o.CustomerId,
-            Status = OrderStatus.Pending,
-            Lines = o.Lines.Select(l => new OrderLine
-            {
-                DishId = l.DishId,
-                Quantity = l.Quantity
-            }).ToList()
-        }).ToList();
+    var ordersS = payload.Orders.Select(o => orderFactory.CreateOrder("normal", o.CustomerId, o.Lines.Select(l => (l.DishId, l.Quantity))));
 
     // Save to generate IDs and persist the orders
     await repo.AddOrdersAsync(ordersS, ct);
@@ -434,16 +417,7 @@ app.MapPost("/benchmark", async (
     await repo.IngredientsResetStock(ct);
 
     // Second batch for Parallel
-    var ordersP = payload.Orders.Select(o => new Order
-        {
-            CustomerId = o.CustomerId,
-            Status = OrderStatus.Pending,
-            Lines = o.Lines.Select(l => new OrderLine
-            {
-                DishId = l.DishId,
-                Quantity = l.Quantity
-            }).ToList()
-        }).ToList();
+    var ordersP = payload.Orders.Select(o => orderFactory.CreateOrder("normal", o.CustomerId, o.Lines.Select(l => (l.DishId, l.Quantity))));
 
     // Save to generate IDs and persist the orders
     await repo.AddOrdersAsync(ordersP, ct);
@@ -456,8 +430,7 @@ app.MapPost("/benchmark", async (
     var sequentialMs = sw1.ElapsedMilliseconds;
     var concurrentMs = sw2.ElapsedMilliseconds;
 
-    return Results.Ok(new
-    {
+    return Results.Ok(new {
         sequentialMs,
         concurrentMs,
         speedup = $"{(double)sequentialMs/concurrentMs:F2}"

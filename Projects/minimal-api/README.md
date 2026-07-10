@@ -14,6 +14,9 @@ The system exposes a **Minimal‑API** surface for operators to:
 The main engineering challenge is ensuring that many orders can be processed concurrently **without ever overselling inventory**, while still maintaining high throughput.
 
 ---
+## Domain Schema
+<img width="771" height="632" alt="Schema_ERD" src="https://github.com/user-attachments/assets/dd4f2019-bcb2-4b54-a760-84e8179836b3" />
+
 
 ## Techniques → Code Mapping (Coverage Contract)
 

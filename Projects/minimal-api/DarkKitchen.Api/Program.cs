@@ -157,6 +157,21 @@ app.MapGet("/orders", async (IDarkKitchenRepo repo, CancellationToken ct) =>
     ));
 });
 
+app.MapGet("/orders/last/{qty:int}", async (int qty, IDarkKitchenRepo repo, CancellationToken ct) => 
+{
+    var orders = await repo.GetAllOrdersAsync(ct);
+    return Results.Ok(
+        orders.Select(o => new {
+            o.Id,
+            o.CustomerId,
+            Status = o.Status.ToString(),
+            Lines = o.Lines.Select(l => new { l.DishId, l.Quantity })
+        })
+        .OrderByDescending(o => o.Id)
+        .Take(qty)
+    );
+});
+
 app.MapGet("/orders/{orderId:int}", async (int orderId, IDarkKitchenRepo repo, CancellationToken ct) =>
 {
     var order = await repo.GetOrderByIdAsync(orderId, ct);

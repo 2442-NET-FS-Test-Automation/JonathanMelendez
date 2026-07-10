@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Serilog;
 
 using DarkKitchen.Api.Fulfillment;
+using DarkKitchen.Data.Repository;
 using DarkKitchen.Data.Entities;
 using DarkKitchen.Data.Defaults;
 using DarkKitchen.Data;
@@ -13,10 +14,12 @@ var builder = WebApplication.CreateBuilder(args);
 var conn_string = "Server=localhost,1433;Database=DarkKitchenDB;User Id=sa;Password=mssql65.;TrustServerCertificate=true";
 builder.Services.AddDbContext<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string),
     ServiceLifetime.Scoped, ServiceLifetime.Singleton);
+builder.Services.AddDbContextFactory<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string));
 
 // Services
-builder.Services.AddDbContextFactory<DarkKitchenDbContext>(options => options.UseSqlServer(conn_string));
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
+builder.Services.AddScoped<IOrderRepo, OrderRepoSqlServer>();
+builder.Services.AddScoped<IInventoryRepo, InventoryRepoSqlServer>();
 
 // Logger
 Log.Logger = new LoggerConfiguration()
@@ -147,38 +150,47 @@ app.MapPost("/inventory/reset", async (DarkKitchenDbContext db, ILogger<Program>
 
 
 // Orders
-app.MapGet("/orders", async (DarkKitchenDbContext db) => 
-    Results.Ok(await db.Orders
-        .Include(o => o.Lines)
-        .ThenInclude(l => l.Dish)
-        .Select(o => new { o.Id, o.CustomerId, Status = o.Status.ToString(), Lines = o.Lines.Select(l => new { l.DishId, l.Quantity }) })
-        .ToListAsync()));
-
-app.MapGet("/orders/{orderId:int}", async (int orderId, DarkKitchenDbContext db) =>
+app.MapGet("/orders", async (IOrderRepo repo, CancellationToken ct) => 
 {
-    var order = await db.Orders
-        .Include(o => o.Lines)
-        .ThenInclude(l => l.Dish)
-        .Select(o => new { o.Id, o.CustomerId, Status = o.Status.ToString(), Lines = o.Lines.Select(l => new { l.DishId, l.Quantity }) })
-        .FirstOrDefaultAsync(o => o.Id == orderId);
-    if (order == null) return Results.NotFound($"Order {orderId} not found");
-    return Results.Ok(order);
+    var orders = await repo.GetAllOrdersAsync(ct);
+    return Results.Ok(
+        orders.Select(o => new {
+            o.Id,
+            o.CustomerId,
+            Status = o.Status.ToString(),
+            Lines = o.Lines.Select(l => new { l.DishId, l.Quantity })
+        }
+    ));
 });
 
-app.MapGet("/orders/customer/{customerId:int}", async (int customerId, DarkKitchenDbContext db) =>
+app.MapGet("/orders/{orderId:int}", async (int orderId, IOrderRepo repo, CancellationToken ct) =>
 {
-    var orders = await db.Orders
-        .Where(o => o.CustomerId == customerId)
-        .Include(o => o.Lines)
-        .ThenInclude(l => l.Dish)
-        .Select(o => new { o.Id, o.CustomerId, Status = o.Status.ToString(), Lines = o.Lines.Select(l => new { l.DishId, l.Quantity }) })
-        .ToListAsync();
+    var order = await repo.GetOrderByIdAsync(orderId, ct);
+    if (order == null) return Results.NotFound($"Order {orderId} not found");
+    return Results.Ok(new { 
+        order.Id,
+        order.CustomerId, 
+        Status = order.Status.ToString(), 
+        Lines = order.Lines.Select(l => new { l.DishId, l.Quantity }) 
+    });
+});
+
+app.MapGet("/orders/customer/{customerId:int}", async (int customerId, IOrderRepo repo, CancellationToken ct) =>
+{
+    var orders = await repo.GetOrdersForCustomerAsync(customerId, ct);
     if (orders.Count == 0) return Results.NotFound($"No orders found for customer {customerId}");
-    return Results.Ok(orders);
+    return Results.Ok(
+        orders.Select(o => new { 
+            o.Id, 
+            o.CustomerId, 
+            Status = o.Status.ToString(), 
+            Lines = o.Lines.Select(l => new { l.DishId, l.Quantity }) 
+        }));
 });
 
 app.MapPost("/orders/single", async (
     OrderPayload payload, 
+    IOrderRepo repo, 
     DarkKitchenDbContext db,
     IFulfillmentService fSvc,
     CancellationToken ct
@@ -201,9 +213,8 @@ app.MapPost("/orders/single", async (
         Lines = payload.Lines.Select(l => new OrderLine { DishId = l.DishId, Quantity = l.Quantity }).ToList()
     };
 
-    db.Orders.Add(newOrder);
+    await repo.AddOrderAsync(newOrder, ct);
     Log.Information("Created order {OrderId} for customer {CustomerId}", newOrder.Id, newOrder.CustomerId);
-    await db.SaveChangesAsync(ct);
 
     FulfillmentResult result = await fSvc.FulfillOneAsync(newOrder.Id, ct);
 
@@ -211,7 +222,8 @@ app.MapPost("/orders/single", async (
 });
 
 app.MapPost("/orders/burst", async(
-    BurstOrderPayload payload,
+    BurstOrderPayload payload, 
+    IOrderRepo repo,
     DarkKitchenDbContext db,
     IServiceScopeFactory scopes,
     IHostApplicationLifetime lifetime
@@ -257,8 +269,7 @@ app.MapPost("/orders/burst", async(
         }).ToList();
 
     // Save to generate IDs and persist the orders
-    db.Orders.AddRange(orders);
-    await db.SaveChangesAsync(ct);
+    await repo.AddOrdersAsync(orders, ct);
 
     var orderIds = orders.Select(o => o.Id).ToList();
     Log.Information("Created {OrderCount} orders: {OrderIds}", orderIds.Count, string.Join(", ", orderIds));
@@ -427,7 +438,8 @@ app.MapGet("/reports/fulfillment-rate", async (DarkKitchenDbContext db) =>
 
 // Benchmarking and tests
 app.MapPost("/benchmark", async (
-    BurstOrderPayload payload,
+    BurstOrderPayload payload, 
+    IOrderRepo repo,
     IFulfillmentService fs,
     DarkKitchenDbContext db,
     CancellationToken ct
@@ -483,8 +495,7 @@ app.MapPost("/benchmark", async (
         }).ToList();
 
     // Save to generate IDs and persist the orders
-    db.Orders.AddRange(ordersS);
-    await db.SaveChangesAsync(ct);
+    await repo.AddOrdersAsync(ordersS, ct);
 
     // Sequential execution
     var sw1 = Stopwatch.StartNew();
@@ -517,8 +528,7 @@ app.MapPost("/benchmark", async (
         }).ToList();
 
     // Save to generate IDs and persist the orders
-    db.Orders.AddRange(ordersP);
-    await db.SaveChangesAsync(ct);
+    await repo.AddOrdersAsync(ordersP, ct);
 
     // Parallel exec
     var sw2 = Stopwatch.StartNew();

@@ -415,7 +415,11 @@ app.MapPost("/benchmark", async (
     await repo.IngredientsResetStock(ct);
 
     // Create first batch for sequential
-    var ordersS = payload.Orders.Select(o => orderFactory.CreateOrder("normal", o.CustomerId, o.Lines.Select(l => (l.DishId, l.Quantity))));
+    var ordersS = new List<Order>();
+    foreach (var o in payload.Orders)
+    {
+        ordersS.Add(orderFactory.CreateOrder("normal", o.CustomerId, o.Lines.Select(l => (l.DishId, l.Quantity))));
+    }
 
     // Save to generate IDs and persist the orders
     await repo.AddOrdersAsync(ordersS, ct);
@@ -430,7 +434,11 @@ app.MapPost("/benchmark", async (
     await repo.IngredientsResetStock(ct);
 
     // Second batch for Parallel
-    var ordersP = payload.Orders.Select(o => orderFactory.CreateOrder("normal", o.CustomerId, o.Lines.Select(l => (l.DishId, l.Quantity))));
+    var ordersP = new List<Order>();
+    foreach (var o in payload.Orders)
+    {
+        ordersP.Add(orderFactory.CreateOrder("normal", o.CustomerId, o.Lines.Select(l => (l.DishId, l.Quantity))));
+    }
 
     // Save to generate IDs and persist the orders
     await repo.AddOrdersAsync(ordersP, ct);

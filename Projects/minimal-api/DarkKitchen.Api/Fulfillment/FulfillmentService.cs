@@ -3,6 +3,7 @@ using Serilog;
 
 using DarkKitchen.Data;
 using DarkKitchen.Data.Entities;
+using DarkKitchen.Data.Exceptions;
 
 namespace DarkKitchen.Api.Fulfillment;
 
@@ -27,7 +28,9 @@ public class FulfillmentService(
             .Include(o => o.Lines)
                 .ThenInclude(o => o.Dish)
                     .ThenInclude(d => d.Ingredients)
-            .FirstAsync(o => o.Id == orderId, ct);
+            .FirstOrDefaultAsync(o => o.Id == orderId, ct);
+        
+        if (order is null) throw new OrderNotFoundException(orderId);
 
         if (order.Status != OrderStatus.Pending)
         {
@@ -53,7 +56,9 @@ public class FulfillmentService(
         }
         db.ChangeTracker.Clear();
 
-        var freshOrder = await db.Orders.Where(o => o.Id == orderId).FirstAsync(ct);
+        var freshOrder = await db.Orders.Where(o => o.Id == orderId).FirstOrDefaultAsync(ct);
+
+        if (freshOrder is null) throw new OrderNotFoundException(orderId);
 
         freshOrder.Status = OrderStatus.Backordered;
         db.FulfillmentEvents.Add(new FulfillmentEvent { OrderId = orderId, Result = FulfillmentResult.Backordered});

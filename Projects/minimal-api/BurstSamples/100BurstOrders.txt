@@ -98,6 +98,7 @@
     { "customerId": 3, "lines": [{ "dishId": 9, "quantity": 2 }, { "dishId": 4, "quantity": 1 }] },
     { "customerId": 1, "lines": [{ "dishId": 6, "quantity": 1 }, { "dishId": 7, "quantity": 2 }, { "dishId": 5, "quantity": 1 }] },
     { "customerId": 2, "lines": [{ "dishId": 1, "quantity": 2 }] },
-    { "customerId": 3, "lines": [{ "dishId": 3, "quantity": 1 }, { "dishId": 10, "quantity": 2 }, { "dishId": 8, "quantity": 1 }] }
+    { "customerId": 3, "lines": [{ "dishId": 3, "quantity": 1 }, { "dishId": 10, "quantity": 2 }, { "dishId": 8, "quantity": 1 }] },
+    { "customerId": 3, "lines": [{ "dishId": 1, "quantity": 1 }] }    
   ]
 }

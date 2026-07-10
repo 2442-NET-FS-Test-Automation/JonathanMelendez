@@ -29,7 +29,7 @@ public class FulfillmentService(
                 .ThenInclude(o => o.Dish)
                     .ThenInclude(d => d.Ingredients)
             .FirstOrDefaultAsync(o => o.Id == orderId, ct);
-        
+
         if (order is null) throw new OrderNotFoundException(orderId);
 
         if (order.Status != OrderStatus.Pending)
@@ -56,7 +56,7 @@ public class FulfillmentService(
         }
         db.ChangeTracker.Clear();
 
-        var freshOrder = await db.Orders.Where(o => o.Id == orderId).FirstOrDefaultAsync(ct);
+        var freshOrder = await db.Orders.Where(o => o.Id == orderId).FirstAsync(ct);
 
         if (freshOrder is null) throw new OrderNotFoundException(orderId);
 
@@ -97,21 +97,22 @@ public class FulfillmentService(
     {
         var ingredientIds = ingredientsRequired.Keys.ToList();
 
+
+        // Get the actual entities
+        var ingredientsToUpdate = await db.Ingredients
+            .Where(i => ingredientIds.Contains(i.Id))
+            .ToListAsync(ct);
+
+        foreach (var ingredient in ingredientsToUpdate)
+        {
+            if (ingredient.Stock >= ingredientsRequired[ingredient.Id])
+                ingredient.Stock -= ingredientsRequired[ingredient.Id];
+            else return false;
+        }
+
         while (true) { // Keep trying until the stock gets dried or some other thing fail
             try
-            {
-                // Get the actual entities
-                var ingredientsToUpdate = await db.Ingredients
-                    .Where(i => ingredientIds.Contains(i.Id))
-                    .ToListAsync(ct);
-
-                foreach (var ingredient in ingredientsToUpdate)
-                {
-                    if (ingredient.Stock >= ingredientsRequired[ingredient.Id])
-                        ingredient.Stock -= ingredientsRequired[ingredient.Id];
-                    else return false;
-                }
-
+            {                
                 await db.SaveChangesAsync(ct);
                 return true;
             }
@@ -120,7 +121,20 @@ public class FulfillmentService(
                 Log.Warning("Attempting save retry");
                 foreach (var entry in e.Entries)
                 {
-                    await entry.ReloadAsync(ct);
+                    var current = await entry.GetDatabaseValuesAsync(ct);
+                    if (current is null) return false;
+
+                    entry.OriginalValues.SetValues(current);    
+                    if (entry.Entity is Ingredient ing)
+                    {
+                        // Grab the current totals
+                        decimal freshValue = current.GetValue<decimal>(nameof(Ingredient.Stock));
+                        decimal desiredAmount = ingredientsRequired[ing.Id];
+
+                        // Re-check on the fresh stock
+                        if (freshValue < desiredAmount) return false;
+                        ing.Stock = freshValue - desiredAmount;
+                    }
                 }
             }
         }

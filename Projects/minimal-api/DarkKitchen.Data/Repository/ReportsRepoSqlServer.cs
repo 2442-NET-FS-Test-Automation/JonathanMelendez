@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Concurrent;
 
 using DarkKitchen.Data.DTOs;
 
@@ -7,21 +8,37 @@ namespace DarkKitchen.Data.Repository;
 public class ReportsRepoSqlServer(IDbContextFactory<DarkKitchenDbContext> dbF) : IReportsRepo
 {
     private readonly IDbContextFactory<DarkKitchenDbContext> _dbF = dbF;
+    private static readonly ConcurrentDictionary<int, string> _dishNameCache = new();
 
     public async Task<List<RankingDTO>> GetDishesRankedReport(CancellationToken ct)
     {
         await using var db = await _dbF.CreateDbContextAsync(ct);
 
+        // First, try to get dish names from cache
+        var dishIds = await db.Dishes.Select(d => d.Id).ToListAsync(ct);
+        foreach (var id in dishIds)
+        {
+            if (!_dishNameCache.ContainsKey(id))
+            {
+                var name = await db.Dishes.Where(d => d.Id == id).Select(d => d.Name).FirstOrDefaultAsync(ct);
+                _dishNameCache.TryAdd(id, name!);
+            }
+        }
+
+        // Now build the report using the cache
         var res = await db.FulfillmentEvents
             .Where(f => f.Result == FulfillmentResult.Fulfilled)
             .Join(db.OrderLines, e => e.OrderId, l => l.OrderId, (e, l) => l)
             .GroupBy(l => l.DishId)
             .Select(g => new { DishId = g.Key, Units = g.Sum(l => l.Quantity) })
-            .Join(db.Dishes, g => g.DishId, d => d.Id, (g, d) => new { d.Name, UnitsSold = g.Units })
-            .OrderByDescending(x => x.UnitsSold)
+            .OrderByDescending(x => x.Units)
             .ToListAsync(ct);
 
-        return res.Select(r => new RankingDTO(r.Name, r.UnitsSold)).ToList();
+        // Convert to DTO using cached names
+        return res.Select(r => new RankingDTO(
+            _dishNameCache.GetOrAdd(r.DishId, id => db.Dishes.Where(d => d.Id == id).Select(d => d.Name).FirstOrDefault()!),
+            r.Units
+        )).ToList();
     }
     public async Task<List<RankingDTO>> GetCustomersRankedReport(CancellationToken ct)
     {

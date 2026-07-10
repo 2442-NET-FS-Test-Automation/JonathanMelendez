@@ -10,7 +10,7 @@ namespace DarkKitchen.Data.Repository;
 public class DarkKitchenRepoSqlServer(IDbContextFactory<DarkKitchenDbContext> dbF) : IDarkKitchenRepo
 {
     private readonly IDbContextFactory<DarkKitchenDbContext> _dbF = dbF;
-    
+
     // Orders
     public async Task<Order?> GetOrderByIdAsync(int orderId, CancellationToken ct)
     {

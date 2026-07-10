@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="DarkKitchen.Api/DarkKitchen.Api.csproj" />
+  <Project Path="DarkKitchen.Data/DarkKitchen.Data.csproj" />
+</Solution>

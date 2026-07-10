@@ -74,15 +74,19 @@ Each order is fulfilled inside a **single database transaction** (implicitly thr
 
 From running `/benchmark` with a 100‑order burst (mixed dishes, 3 customers, 10 dish types) on local SQL Server:
 
-On Beefy Pc:
-- **Sequential**: 1563 ms
-- **Concurrent**: 827 ms
-- **Speedup**: 1.84×
+- **Sequential**: 2916 ms
 
-On Laptop:
-- **Sequential**: 2040 ms
-- **Concurrent**: 25221 ms
-- **Speedup**: 0.08
+Uncapped Concurrency:
+- **Concurrent**: 26216 ms
+- **Speedup**: 0.11x 
+
+Capped concurrency (2):
+- **Concurrent**: 2095 ms
+- **Speedup**: 1.39x 
+
+Capped concurrency (20):
+- **Concurrent**: 8653 ms
+- **Speedup**: 0.34x 
 
 *Note: under heavy contention (many orders competing for the same ingredients), the speedup is limited because retries become more frequent – this is expected and demonstrates the trade‑off between parallelism and resource contention.*
 

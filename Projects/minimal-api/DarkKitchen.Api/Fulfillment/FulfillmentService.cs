@@ -10,7 +10,7 @@ namespace DarkKitchen.Api.Fulfillment;
 public interface IFulfillmentService
 {
     public Task<FulfillmentResult> FulfillOneAsync(int orderId, CancellationToken ct);
-    public Task<BurstResult> FulfillBurstAsync(IEnumerable<int> orderIds, CancellationToken ct);
+    public Task<BurstResult> FulfillBurstAsync(IEnumerable<int> orderIds, int MaxConcurrentFulfillments, CancellationToken ct);
 }
 
 public record BurstResult(int Fulfilled, int Backordered);
@@ -68,7 +68,7 @@ public class FulfillmentService(
         await db.SaveChangesAsync(ct);
         return FulfillmentResult.Backordered;
     }
-    public async Task<BurstResult> FulfillBurstAsync(IEnumerable<int> orderIds, CancellationToken ct)
+    public async Task<BurstResult> FulfillBurstAsync(IEnumerable<int> orderIds, int MaxConcurrentFulfillments, CancellationToken ct)
     {
         List<int> idList = orderIds.ToList();
         List<Order> orders;
@@ -79,10 +79,24 @@ public class FulfillmentService(
         }
         
         var planned = OrderByPriority(orders);
-        var tasks = planned.Select(id => FulfillOneAsync(id, ct));
-
-        // Await here until all tasks are complete
-        var results = await Task.WhenAll(tasks);
+        var results = new FulfillmentResult[planned.Count];
+        
+        using var throttle = new SemaphoreSlim(MaxConcurrentFulfillments);
+ 
+        var tasks = planned.Select(async (id, index) =>
+        {
+            await throttle.WaitAsync(ct);
+            try
+            {
+                results[index] = await FulfillOneAsync(id, ct);
+            }
+            finally
+            {
+                throttle.Release();
+            }
+        });
+ 
+        await Task.WhenAll(tasks);
 
         return new BurstResult(
             Fulfilled: results.Count(r => r == FulfillmentResult.Fulfilled),

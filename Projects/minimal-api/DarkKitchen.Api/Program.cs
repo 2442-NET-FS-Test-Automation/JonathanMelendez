@@ -251,13 +251,13 @@ app.MapPost("/orders/burst", async(
     var orderIds = orders.Select(o => o.Id).ToList();
     Log.Information("Created {OrderCount} orders: {OrderIds}", orderIds.Count, string.Join(", ", orderIds));
 
-    var burstTask = Task.Run( async () => // assigning the task result to a discard runs this as a background task
+    var burstTask = Task.Run( async () =>
     {
         try
         {
             using var scope = scopes.CreateScope(); // ask for a fresh scope
             var service  = scope.ServiceProvider.GetRequiredService<IFulfillmentService>(); //grab a fulfillment service
-            await service.FulfillBurstAsync(orderIds, ct); // use it to call fulfillBurstAsync()
+            await service.FulfillBurstAsync(orderIds, 2, ct); // use it to call fulfillBurstAsync()
         }
         catch (Exception e)
         {
@@ -384,7 +384,8 @@ app.MapGet("/reports/fulfillment-rate", async (IReportsRepo repo, CancellationTo
 
 
 // Benchmarking and tests
-app.MapPost("/benchmark", async (
+app.MapPost("/benchmark/{MaxConcurrentFulfillments:int=2}", async (
+    int MaxConcurrentFulfillments,
     BurstOrderPayload payload, 
     IDarkKitchenRepo repo,
     OrderFactory orderFactory,
@@ -445,7 +446,10 @@ app.MapPost("/benchmark", async (
 
     // Parallel exec
     var sw2 = Stopwatch.StartNew();
-    await fs.FulfillBurstAsync(ordersP.Select(o => o.Id).ToList(), ct);
+    await fs.FulfillBurstAsync(
+        ordersP.Select(o => o.Id).ToList(), 
+        MaxConcurrentFulfillments, 
+        ct);
     sw2.Stop();
 
     var sequentialMs = sw1.ElapsedMilliseconds;

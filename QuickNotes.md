@@ -331,3 +331,11 @@ Relationships nest
 
 ## Kestrel
 Kestrel is the server that runs our api. Goes through the middleware pipeline
+
+## Authentication and Authorization
+### JWT Tokens
+Headers
+
+Paylod
+
+Cryptographic Hash

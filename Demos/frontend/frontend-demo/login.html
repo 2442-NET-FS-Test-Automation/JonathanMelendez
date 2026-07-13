@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Login</title>
+</head>
+<body>
+    <header class="site-header">
+        <h1 id="head-title">City Library</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="login.html">Sign In</a>
+        </nav>
+    </header>
+    <main>
+        <form id="login-form" class="panel">
+            <div class="field">
+                <label for="username">Username:</label>
+                <input type="text" name="username" required placeholder="ada or bob">
+            </div>
+            <div class="field">
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password">
+            </div>
+            <button type="submit">Sign In</button>
+            <p id="login-status"></p>
+        </form>
+        <fieldset>
+            <legend>Membership preferences (input-type tour)</legend>
+            <div class="field">
+                <label for="email">Email:</label>
+                <input type="email" name="email" id="email" placeholder="ada@library.dev">
+            </div>
+            <div class="field">
+                <label for="member-since">Member since:</label>
+                <input type="date" name="member-since" id="member-since">
+            </div>
+            <div class="field">
+                <label for="loan-limit">Loan limit::</label>
+                <input type="number" name="loan-limit" id="loan-limit" min="1" max="3">
+            </div>
+            <div class="field">
+                <label for="branch">Home branch</label>
+                <select name="branch" id="branch">
+                    <option>North</option>
+                    <option>Central</option>
+                    <option>South</option>
+                </select>
+            </div>
+            <div>
+                <input type="checkbox" id="newsletter" name="newsletter" checked>
+                <label for="newsletter">Email me the slop</label>
+            </div>
+            <div class="field">
+                <input type="radio" name="format" id="format-print" value="print" checked>
+                <label for="format-print">Print</label>
+                <input type="radio" name="format" id="format-ebook">
+                <label for="format-ebook">E-book</label>
+            </div>
+        </fieldset>
+    </main>
+</body>
+</html>

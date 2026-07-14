@@ -4,8 +4,8 @@ namespace Library.Data.Entities;
 public class Product
 {
     public int Id { get; set; }
-    public string Sku { get; set; }
-    public string Name { get; set; }
+    public string Sku { get; set; } = default!;
+    public string Name { get; set; } = default!;
     // Data anotation to enforce constraints
     [Precision(10, 2)]
     public decimal Price { get; set; }

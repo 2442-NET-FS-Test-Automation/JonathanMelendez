@@ -11,7 +11,7 @@ public class LibraryDbContext(DbContextOptions<LibraryDbContext> options) : DbCo
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
     public DbSet<FulfillmentEvent> FulfillmentEvents => Set<FulfillmentEvent>();
-
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -35,6 +35,8 @@ public class LibraryDbContext(DbContextOptions<LibraryDbContext> options) : DbCo
 
         b.Entity<Customer>().Property(c => c.Email).HasMaxLength(256);
         b.Entity<Customer>().HasIndex(c => c.Email).IsUnique();
+
+        b.Entity<User>().HasIndex(u => u.UserName).IsUnique();
 
         // Here you should provide the ids even if they are created as identity
         b.Entity<Product>().HasData(

@@ -49,6 +49,7 @@ public class InventoryController(
         return Ok(response);
     }
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<InventoryDTO>> Create(InventoryDTO newInv)
     {
         var created = await _service.AddAsync(newInv);
@@ -60,7 +61,7 @@ public class InventoryController(
         return CreatedAtAction(nameof(GetBySku), new {sku = response.Sku}, response);
     }
     [HttpDelete("{sku}")]
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> Delete(string sku)
     {
         if (await _service.RemoveAsync(sku))
@@ -73,7 +74,7 @@ public class InventoryController(
         return NotFound();
     }
     [HttpGet("{sku}/supplier-price")]
-    [Authorize(Roles = "admin")]
+    [Authorize]
     public async Task<IActionResult> GetSupplierPrice(string sku)
     {
         var price = await _client.GetListPriceAsync(sku);

@@ -22,8 +22,12 @@ export enum HttpStatus {
     Forbidden = 403,
     NotFound = 404
 }
-
+ 
 export enum SortDirection{
     Ascending = "asc",
     Descending = "desc"
 }
+
+export type InventoryPatch = Partial<InventoryItem>
+
+export type NewInventoryItem = Omit<InventoryItem, "sku">

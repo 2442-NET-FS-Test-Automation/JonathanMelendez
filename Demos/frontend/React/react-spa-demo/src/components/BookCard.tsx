@@ -1,15 +1,16 @@
+import { Link } from "react-router-dom"
 import type { InventoryItem } from "../lib/types"
 
 interface BookCardProps {
     item: InventoryItem,
-    compact: boolean
+    compact?: boolean
 }
 
 export default function BookCard({ item, compact=false }: BookCardProps){
 
     return(
         <article className="card">
-            <h3>{item.name}</h3>
+            <Link to={`/inventory/${item.sku}`} >{item.name}</Link>
 
             <dd>{item.sku}</dd>
             {!compact && (

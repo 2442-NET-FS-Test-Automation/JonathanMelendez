@@ -24,7 +24,7 @@ builder.Host.UseSerilog();
 // CORS (Cross Origin Resource Sharing)
 const string SpaCorsPolicy = "spa";
 builder.Services.AddCors(o => o.AddPolicy(SpaCorsPolicy, 
-    p => p.WithOrigins("http://localhost:5500")
+    p => p.WithOrigins("http://localhost:5500", "http://localhost:5173")
         .AllowAnyHeader()
         .AllowAnyMethod()));
 

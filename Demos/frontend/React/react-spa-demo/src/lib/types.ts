@@ -23,10 +23,7 @@ export type HttpStatus = {
     NotFound: 404
 }
  
-export type SortDirection = {
-    Ascending: "asc",
-    Descending: "desc"
-}
+export type SortDirection = "asc" | "desc";
 
 export type InventoryPatch = Partial<InventoryItem>
 

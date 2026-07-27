@@ -5,6 +5,7 @@ import CatalogPage from './pages/CatalogPage'
 import BookDetailPage from './pages/BookDetailPage'
 import AboutPage from './pages/AboutPage'
 import LoginPage from './pages/LoginPage'
+import { RequireAuth } from './components/RequireAuth'
 
 function App() {
 
@@ -24,6 +25,10 @@ function App() {
                     <Route path='/inventory/:sku' element={<BookDetailPage />}/>
                     <Route path='/login' element={<LoginPage />}/>
                     <Route path='/about' element={<AboutPage />}/>
+
+                    <Route element={<RequireAuth children={undefined} />}>
+
+                    </Route>
                         
                     <Route path="*" element={<p>Page non fount</p>}/>
                 </Routes>

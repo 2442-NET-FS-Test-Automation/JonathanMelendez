@@ -33,7 +33,7 @@ export default function LoginPage(){
             </label>
             <label>
                 Password
-                <input type="text" value={password} 
+                <input type="password" value={password} 
                     onChange={(e) => setPassword(e.target.value)} />
             </label>
             <button type="submit" disabled={status === "authenticating"}>

@@ -7,12 +7,13 @@ namespace Library.Tests.Integration;
 
 // Lets test auth over HTTP - this is the same request/response behavior
 // you'd get sending these requests from your React front end
-public class AuthApiTests: IClassFixture<WebApplicationFactory<Program>>
+[Collection("Library API")]
+public class AuthApiTests
 {
     
     private readonly HttpClient _client;
 
-    public AuthApiTests(WebApplicationFactory<Program> factory)
+    public AuthApiTests(LibraryApiFactory factory)
     {
         _client = factory.CreateClient();
     }

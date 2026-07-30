@@ -3,7 +3,8 @@ using FluentAssertions;
 
 namespace Library.Tests.Integration;
 
-public class MiddlewareTests : IClassFixture<LibraryApiFactory>
+[Collection("Library API")]
+public class MiddlewareTests
 {
     private readonly HttpClient _client;
 

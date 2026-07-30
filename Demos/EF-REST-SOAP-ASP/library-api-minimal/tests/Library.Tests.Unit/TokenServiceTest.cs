@@ -11,7 +11,7 @@ namespace Library.Tests.Unit;
 public class TokenServiceTests(ITestOutputHelper output)
 {
     private readonly ITestOutputHelper _output = output;
-    private const string TestKey = "unit-test-key-ipouyitdrdyxcfvbhnjmpoṕiuytrfgbhjkplolikytrewdfgvbhjkl";
+    private const string TestKey = "jd20q9pqgjfnmueiwaojOXMNCKUAWIHCIOJLENK938aofjn93apjgn380a9ghwbpnudjk";
     
     private static TokenService CreateSUT()
     {

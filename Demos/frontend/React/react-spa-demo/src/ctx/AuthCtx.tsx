@@ -37,7 +37,8 @@ export function AuthProvider ({ children }: { children: ReactNode }) {
             dispatch({ type: "login_success", user });
 
             return true;
-        } catch {
+        } catch (e) {
+            console.log(e);
             dispatch({ type: "login_failure", error: "Invalid username or password" })
             return false;
         }

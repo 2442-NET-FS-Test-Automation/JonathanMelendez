@@ -6,6 +6,7 @@ import BookDetailPage from './pages/BookDetailPage'
 import AboutPage from './pages/AboutPage'
 import LoginPage from './pages/LoginPage'
 import { RequireAuth } from './components/RequireAuth'
+import AdminPage from './pages/AdminPage'
 
 function App() {
 
@@ -29,7 +30,7 @@ function App() {
                     <Route element={<RequireAuth children={undefined} />}>
 
                     </Route>
-                        
+                    <Route path="/admin" element={<AdminPage />} />
                     <Route path="*" element={<p>Page non fount</p>}/>
                 </Routes>
           </main>

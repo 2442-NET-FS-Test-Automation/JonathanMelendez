@@ -2,7 +2,7 @@ import axios from "axios";
 import type { InventoryItem, SupplierPrice } from "./types";
 import { getToken } from "./storage";
 
-export const api = axios.create({ baseURL: "http://localhost:5224/api" });
+export const api = axios.create({ baseURL: "http://localhost:5224" });
 
 api.interceptors.request.use((config) => {
     const token = getToken();
@@ -12,12 +12,12 @@ api.interceptors.request.use((config) => {
 
 // Inventory
 export async function getInventory(): Promise<InventoryItem[]> {
-    const res = await api.get<InventoryItem[]>("/Inventory");
+    const res = await api.get<InventoryItem[]>("/api/Inventory");
     return res.data;
 }
 
 export async function getInventoryItem(sku: string): Promise<InventoryItem> {
-    const res = await api.get<InventoryItem>(`/Inventory/${sku}`);
+    const res = await api.get<InventoryItem>(`/api/Inventory/${sku}`);
     return res.data;
 }
 
@@ -29,17 +29,17 @@ export interface CreateInventoryBody {
 }
 
 export async function getSupplierPrice(sku:string): Promise<SupplierPrice> {
-    const response = await api.get<SupplierPrice>("/Inventory/"+sku+"/supplier-price");
+    const response = await api.get<SupplierPrice>("/api/Inventory/"+sku+"/supplier-price");
     return response.data;
 }
 
 export async function createBook(body:CreateInventoryBody): Promise<InventoryItem> {
-    const response = await api.post<InventoryItem>("/Inventory", body);
+    const response = await api.post<InventoryItem>("/api/Inventory", body);
     return response.data;
 }
 
 export async function deleteBook(sku:string): Promise<void> {
-    await api.delete("Inventory"+sku);
+    await api.delete("/api/Inventory"+sku);
 } 
 
 

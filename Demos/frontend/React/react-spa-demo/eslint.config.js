@@ -19,4 +19,13 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: ['cypress/**/*.js', 'cypress/**/*.ts'],
+    plugins: {
+      cypress: pluginCypress,
+    },
+    rules: {
+      ...pluginCypress.configs.recommended.rules,
+    },
+  },
 ])

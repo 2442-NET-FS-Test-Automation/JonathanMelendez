@@ -85,7 +85,7 @@ using (var scope = app.Services.CreateScope())
     {
         var hasher = new PasswordHasher<User>();
         var admin = new User { UserName = "jon", Role = UserRoles.Admin };
-        admin.PasswordHash = hasher.HashPassword(admin, adminPass);
+        admin.PasswordHash = hasher.HashPassword(admin, "qwerty123");
 
         db.Users.Add(admin);
         db.SaveChanges();

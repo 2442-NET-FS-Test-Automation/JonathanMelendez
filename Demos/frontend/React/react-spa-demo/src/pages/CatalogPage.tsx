@@ -36,8 +36,8 @@ export default function CatalogPage(){
     const visibleBooks = [...items]
         .filter((i) => i.name.toLowerCase().includes(userQuery.toLowerCase()))
         .sort((a, b) => sortDir === "asc" ? 
-            a.name.localeCompare(a.name) : 
-            b.name.localeCompare(b.name)
+            a.name.localeCompare(b.name) : 
+            b.name.localeCompare(a.name)
         );
 
     if (fState === "idle" || fState === "loading") return <p>Loading catalog...</p>
@@ -59,10 +59,14 @@ export default function CatalogPage(){
                 >
                     Sort {sortDir === "asc" ? "Z-A" : "A-Z"}
                 </button>
+            </div>
+            {visibleBooks.length === 0 ? (
+                <p>No books match "{userQuery}".</p>
+            ) : (
                 <div className="cards">
                     {visibleBooks.map(i => <BookCard key={i.sku} item={i} compact={compact}/>)}
                 </div>
-            </div>
+            )}
         </section>
     )
 }

@@ -10,17 +10,20 @@ export default function BookCard({ item, compact=false }: BookCardProps){
 
     return(
         <article className="card">
-            <Link to={`/inventory/${item.sku}`} >{item.name}</Link>
-
-            <dd>{item.sku}</dd>
-            {!compact && (
-                <>
-                    <dt>In Stock</dt>
-                    <dd className={item.currentStock === 0 ? "out" : ""}>
-                        {item.currentStock}
-                    </dd>
-                </>
-            )}
+            <h3>
+                <Link to={`/inventory/${item.sku}`} >{item.name}</Link>
+            </h3>
+            <dl>
+                <dd>{item.sku}</dd>
+                {!compact && (
+                    <>
+                        <dt>In Stock</dt>
+                        <dd className={item.currentStock === 0 ? "out" : ""}>
+                            {item.currentStock}
+                        </dd>
+                    </>
+                )}
+            </dl>
         </article>
     )
 }
